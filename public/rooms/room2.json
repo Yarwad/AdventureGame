@@ -1,0 +1,54 @@
+{
+  "id": "room2",
+  "title": "The Red Cave",
+  "background": "/rooms/marsmountain.png",
+  "walkAreaY": [210, 320],
+  "depthScale": { "top": 0.45, "bottom": 0.95 },
+  "exits": [
+    {
+      "id": "back_outside",
+      "x": 0, "y": 190, "w": 80, "h": 140,
+      "toRoom": "room1",
+      "spawnX": 470, "spawnY": 290,
+      "label": "Exit Cave"
+    }
+  ],
+  "hotspots": [
+    {
+      "id": "cave_walls",
+      "label": "Cave Walls",
+      "x": 80, "y": 130, "w": 480, "h": 80,
+      "verbs": {
+        "lookAt": [
+          { "type": "say", "text": "Ancient etchings cover the cave walls. Could be thousands of years old." }
+        ]
+      }
+    },
+    {
+      "id": "glowing_crystal",
+      "label": "Glowing Crystal",
+      "x": 300, "y": 220, "w": 80, "h": 80,
+      "verbs": {
+        "lookAt": [
+          { "type": "say", "text": "A faintly pulsing crystal. It hums with strange energy." }
+        ],
+        "use": [
+          { "type": "say", "text": "You touch the crystal. A warm tingle runs through your hand." }
+        ],
+        "pickUp": [
+          { "type": "say", "text": "Best not to take it. It seems important." }
+        ]
+      }
+    },
+    {
+      "id": "cave_entrance_sign",
+      "label": "Engraved Plaque",
+      "x": 140, "y": 240, "w": 100, "h": 60,
+      "verbs": {
+        "lookAt": [
+          { "type": "narrate", "text": "The plaque reads: 'Chamber of the First Settlers'" }
+        ]
+      }
+    }
+  ]
+}

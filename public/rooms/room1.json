@@ -1,0 +1,84 @@
+{
+  "id": "room1",
+  "title": "Mars Mountain Pass",
+  "background": "/rooms/marsmountain.png",
+  "walkAreaY": [210, 320],
+  "depthScale": { "top": 0.45, "bottom": 0.95 },
+  "exits": [
+    {
+      "id": "to_cave",
+      "x": 560, "y": 190, "w": 80, "h": 140,
+      "toRoom": "room2",
+      "spawnX": 110, "spawnY": 290,
+      "label": "Cave Entrance"
+    }
+  ],
+  "items": [
+    {
+      "id": "brass_key",
+      "label": "Brass Key",
+      "x": 260, "y": 295,
+      "image": "/items/key.png",
+      "verbs": {
+        "lookAt": [
+          { "type": "say", "text": "A small brass key, glinting in the alien light." }
+        ],
+        "pickUp": [
+          { "type": "say", "text": "You pocket the key. It might open something." },
+          { "type": "addItem", "id": "brass_key", "label": "Brass Key", "image": "/items/key.png" },
+          { "type": "removeWorldItem", "id": "brass_key" }
+        ]
+      }
+    }
+  ],
+  "hotspots": [
+    {
+      "id": "sky",
+      "label": "Martian Sky",
+      "x": 0, "y": 0, "w": 640, "h": 130,
+      "verbs": {
+        "lookAt": [
+          { "type": "say", "text": "The sky is a dull pinkish-grey. Two moons hang overhead." }
+        ]
+      }
+    },
+    {
+      "id": "mountains",
+      "label": "Mountains",
+      "x": 0, "y": 130, "w": 640, "h": 80,
+      "verbs": {
+        "lookAt": [
+          { "type": "say", "text": "Rust-red peaks stretch endlessly into the alien sky." }
+        ]
+      }
+    },
+    {
+      "id": "locked_hatch",
+      "label": "Metal Hatch",
+      "x": 450, "y": 250, "w": 90, "h": 70,
+      "verbs": {
+        "lookAt": [
+          { "type": "say", "text": "A heavy metal hatch, sealed with a brass lock." }
+        ],
+        "use": [
+          {
+            "type": "condition",
+            "hasItem": "brass_key",
+            "then": [
+              { "type": "say", "text": "The key fits! The hatch grinds open." },
+              { "type": "setFlag", "key": "hatchOpen", "value": true },
+              { "type": "wait", "ms": 800 },
+              { "type": "goTo", "room": "room2", "spawnX": 110, "spawnY": 290 }
+            ],
+            "else": [
+              { "type": "say", "text": "It's locked tight. I need a key." }
+            ]
+          }
+        ],
+        "pickUp": [
+          { "type": "say", "text": "It's bolted to the ground. I can't take it." }
+        ]
+      }
+    }
+  ]
+}
