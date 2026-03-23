@@ -88,6 +88,9 @@ export class GameScene extends Phaser.Scene {
       this.registry.set('statusText', text);
     });
 
+    // Arrow key cursors
+    this.cursors = this.input.keyboard.createCursorKeys();
+
     // Load initial room with a fade-in
     this.cameras.main.fadeIn(500, 0, 0, 0);
     this.roomSystem.loadRoom('room1', Math.round(GAME_W * 0.35), Math.round(GAME_H * 0.72));
@@ -147,6 +150,21 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_t, dt) {
+    // Arrow key movement when enabled
+    if (this.registry.get('arrowKeys') && this.cursors) {
+      const dir = { x: 0, y: 0 };
+      if (this.cursors.left.isDown)  dir.x = -1;
+      if (this.cursors.right.isDown) dir.x = 1;
+      if (this.cursors.up.isDown)    dir.y = -1;
+      if (this.cursors.down.isDown)  dir.y = 1;
+
+      if (dir.x !== 0 || dir.y !== 0) {
+        this.player.moveDirection(dir.x, dir.y, dt);
+      } else {
+        this.player.stopDirection();
+      }
+    }
+
     this.player.update(dt);
   }
 }

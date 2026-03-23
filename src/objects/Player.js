@@ -8,6 +8,7 @@ export class Player {
     this.speed = 90;
     this.target = null;
     this._onArrived = null;
+    this._dirMoving = false;
 
     this.sprite = scene.add.sprite(x, y, 'player_walk', 0);
     this.sprite.setOrigin(0.5, 1.0);
@@ -82,6 +83,46 @@ export class Player {
 
     this._updateScale(this.sprite.y);
     this.sprite.setDepth(this.sprite.y);
+  }
+
+  moveDirection(dx, dy, dt) {
+    // Cancel any click-to-walk target
+    if (this.target) {
+      this.target = null;
+      this._onArrived = null;
+    }
+
+    const d = dt / 1000;
+    const len = Math.hypot(dx, dy);
+    const nx = dx / len;
+    const ny = dy / len;
+
+    const newX = this.sprite.x + nx * this.speed * d;
+    const newY = this.sprite.y + ny * this.speed * d;
+
+    // Clamp Y to walk area
+    const [minY, maxY] = this.walkAreaY;
+    const clampedY = Phaser.Math.Clamp(newY, minY, maxY);
+
+    // Clamp X to screen bounds
+    const clampedX = Phaser.Math.Clamp(newX, 8, 312);
+
+    this.sprite.setPosition(clampedX, clampedY);
+    this.sprite.setFlipX(nx < 0);
+    if (!this.sprite.anims.isPlaying) this.sprite.play('walk');
+    this._updateScale(clampedY);
+    this.sprite.setDepth(clampedY);
+    this._dirMoving = true;
+  }
+
+  stopDirection() {
+    if (this._dirMoving) {
+      this._dirMoving = false;
+      if (!this.target) {
+        this.sprite.anims.stop();
+        this.sprite.setFrame(0);
+      }
+    }
   }
 
   get x() { return this.sprite.x; }
