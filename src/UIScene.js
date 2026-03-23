@@ -23,11 +23,11 @@ const C = {
   statusText: '#9999cc',
 };
 
-const FONT = { fontFamily: 'monospace, "Courier New"' };
+const FONT = { fontFamily: '"Press Start 2P", monospace' };
 const INV_SLOT  = 22;
 const INV_PAD   = 3;
-const BTN_W     = 37;
-const BTN_H     = 12;
+const BTN_W     = 42;
+const BTN_H     = 14;
 const BTN_PAD   = 2;
 
 export class UIScene extends Phaser.Scene {

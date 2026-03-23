@@ -31,7 +31,7 @@ export class DialogueSystem {
     const maxW = 120;
 
     const textObj = this.scene.add.text(0, 0, text, {
-      fontFamily: 'monospace, "Courier New"',
+      fontFamily: '"Press Start 2P", monospace',
       fontSize: '6px',
       color: '#ffffff',
       wordWrap: { width: maxW - pad * 2 },
