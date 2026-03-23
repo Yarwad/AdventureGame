@@ -27,12 +27,12 @@ export class DialogueSystem {
   }
 
   _buildBubble(text, cx, cy) {
-    const pad = 7;
-    const maxW = 200;
+    const pad = 4;
+    const maxW = 120;
 
     const textObj = this.scene.add.text(0, 0, text, {
       fontFamily: 'monospace, "Courier New"',
-      fontSize: '9px',
+      fontSize: '6px',
       color: '#ffffff',
       wordWrap: { width: maxW - pad * 2 },
       align: 'center',

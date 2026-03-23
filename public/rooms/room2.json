@@ -2,14 +2,14 @@
   "id": "room2",
   "title": "The Red Cave",
   "background": "rooms/marsmountain.png",
-  "walkAreaY": [210, 320],
+  "walkAreaY": [105, 160],
   "depthScale": { "top": 0.45, "bottom": 0.95 },
   "exits": [
     {
       "id": "back_outside",
-      "x": 0, "y": 190, "w": 80, "h": 140,
+      "x": 0, "y": 95, "w": 40, "h": 70,
       "toRoom": "room1",
-      "spawnX": 470, "spawnY": 290,
+      "spawnX": 235, "spawnY": 145,
       "label": "Exit Cave"
     }
   ],
@@ -17,7 +17,7 @@
     {
       "id": "cave_walls",
       "label": "Cave Walls",
-      "x": 80, "y": 130, "w": 480, "h": 80,
+      "x": 40, "y": 65, "w": 240, "h": 40,
       "verbs": {
         "lookAt": [
           { "type": "say", "text": "Ancient etchings cover the cave walls. Could be thousands of years old." }
@@ -27,7 +27,7 @@
     {
       "id": "glowing_crystal",
       "label": "Glowing Crystal",
-      "x": 300, "y": 220, "w": 80, "h": 80,
+      "x": 150, "y": 110, "w": 40, "h": 40,
       "verbs": {
         "lookAt": [
           { "type": "say", "text": "A faintly pulsing crystal. It hums with strange energy." }
@@ -43,7 +43,7 @@
     {
       "id": "cave_entrance_sign",
       "label": "Engraved Plaque",
-      "x": 140, "y": 240, "w": 100, "h": 60,
+      "x": 70, "y": 120, "w": 50, "h": 30,
       "verbs": {
         "lookAt": [
           { "type": "narrate", "text": "The plaque reads: 'Chamber of the First Settlers'" }

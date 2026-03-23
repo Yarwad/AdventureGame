@@ -1,11 +1,11 @@
 import Phaser from 'phaser';
 
 export class Player {
-  constructor(scene, x, y, walkAreaY = [200, 320], depthScale = { top: 0.5, bottom: 1.0 }) {
+  constructor(scene, x, y, walkAreaY = [100, 160], depthScale = { top: 0.5, bottom: 1.0 }) {
     this.scene = scene;
     this.walkAreaY = walkAreaY;
     this.depthScale = depthScale;
-    this.speed = 180;
+    this.speed = 90;
     this.target = null;
     this._onArrived = null;
 

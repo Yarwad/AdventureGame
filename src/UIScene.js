@@ -24,11 +24,11 @@ const C = {
 };
 
 const FONT = { fontFamily: 'monospace, "Courier New"' };
-const INV_SLOT  = 44;
-const INV_PAD   = 5;
-const BTN_W     = 74;
-const BTN_H     = 24;
-const BTN_PAD   = 4;
+const INV_SLOT  = 22;
+const INV_PAD   = 3;
+const BTN_W     = 37;
+const BTN_H     = 12;
+const BTN_PAD   = 2;
 
 export class UIScene extends Phaser.Scene {
   constructor() {
@@ -103,7 +103,7 @@ export class UIScene extends Phaser.Scene {
 
     this._toggleBtn = this.add.text(tx, ty, '☰', {
       ...FONT,
-      fontSize: '14px',
+      fontSize: '8px',
       color: '#ffffff',
       backgroundColor: '#333355',
       padding: { x: 5, y: 3 },
@@ -148,15 +148,15 @@ export class UIScene extends Phaser.Scene {
     this._uiBar.lineBetween(0, barY, GAME_W, barY);
 
     // Status line
-    this._statusTxt = this.add.text(8, barY + 4, '', {
+    this._statusTxt = this.add.text(4, barY + 2, '', {
       ...FONT,
-      fontSize: '8px',
+      fontSize: '5px',
       color: C.statusText,
     }).setDepth(1001);
 
     // Verb buttons — 3 on top row, 2 on bottom row (left half)
-    const verbBaseX = 6;
-    const verbBaseY = barY + 20;
+    const verbBaseX = 3;
+    const verbBaseY = barY + 10;
 
     VERBS.forEach((verb, i) => {
       const col = i % 3;
@@ -176,7 +176,7 @@ export class UIScene extends Phaser.Scene {
     const bg = this.add.graphics().setDepth(1001);
     const txt = this.add.text(bx + BTN_W / 2, by + BTN_H / 2, verb.label, {
       ...FONT,
-      fontSize: '7px',
+      fontSize: '5px',
       color: C.btnText,
     }).setOrigin(0.5, 0.5).setDepth(1002);
 
@@ -234,8 +234,8 @@ export class UIScene extends Phaser.Scene {
       if (item) {
         label = this.add.text(sx + INV_SLOT / 2, slotY + INV_SLOT / 2,
           item.label.slice(0, 6),
-          { ...FONT, fontSize: '6px', color: '#ffffff', align: 'center',
-            wordWrap: { width: INV_SLOT - 4 } })
+          { ...FONT, fontSize: '4px', color: '#ffffff', align: 'center',
+            wordWrap: { width: INV_SLOT - 2 } })
           .setOrigin(0.5, 0.5)
           .setDepth(1002);
 
@@ -312,10 +312,10 @@ export class UIScene extends Phaser.Scene {
     const available = VERBS.filter(v => verbs[v.id]);
     if (!available.length) return;
 
-    const btnW   = 88;
-    const btnH   = 20;
-    const bPad   = 2;
-    const hPad   = 6;
+    const btnW   = 44;
+    const btnH   = 10;
+    const bPad   = 1;
+    const hPad   = 3;
     const popW   = btnW + hPad * 2;
     const popH   = available.length * (btnH + bPad) - bPad + hPad * 2;
 
@@ -341,7 +341,7 @@ export class UIScene extends Phaser.Scene {
 
       const txt = this.add.text(popW / 2, by + btnH / 2, verb.label, {
         ...FONT,
-        fontSize: '7px',
+        fontSize: '5px',
         color: '#c8d4ff',
       }).setOrigin(0.5, 0.5);
       container.add(txt);

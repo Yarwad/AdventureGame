@@ -2,14 +2,14 @@
   "id": "room1",
   "title": "Mars Mountain Pass",
   "background": "rooms/marsmountain.png",
-  "walkAreaY": [210, 320],
+  "walkAreaY": [105, 160],
   "depthScale": { "top": 0.45, "bottom": 0.95 },
   "exits": [
     {
       "id": "to_cave",
-      "x": 560, "y": 190, "w": 80, "h": 140,
+      "x": 280, "y": 95, "w": 40, "h": 70,
       "toRoom": "room2",
-      "spawnX": 110, "spawnY": 290,
+      "spawnX": 55, "spawnY": 145,
       "label": "Cave Entrance"
     }
   ],
@@ -17,7 +17,7 @@
     {
       "id": "brass_key",
       "label": "Brass Key",
-      "x": 260, "y": 295,
+      "x": 130, "y": 148,
       "image": "items/key.png",
       "verbs": {
         "lookAt": [
@@ -35,7 +35,7 @@
     {
       "id": "sky",
       "label": "Martian Sky",
-      "x": 0, "y": 0, "w": 640, "h": 130,
+      "x": 0, "y": 0, "w": 320, "h": 65,
       "verbs": {
         "lookAt": [
           { "type": "say", "text": "The sky is a dull pinkish-grey. Two moons hang overhead." }
@@ -45,7 +45,7 @@
     {
       "id": "mountains",
       "label": "Mountains",
-      "x": 0, "y": 130, "w": 640, "h": 80,
+      "x": 0, "y": 65, "w": 320, "h": 40,
       "verbs": {
         "lookAt": [
           { "type": "say", "text": "Rust-red peaks stretch endlessly into the alien sky." }
@@ -55,7 +55,7 @@
     {
       "id": "locked_hatch",
       "label": "Metal Hatch",
-      "x": 450, "y": 250, "w": 90, "h": 70,
+      "x": 225, "y": 125, "w": 45, "h": 35,
       "verbs": {
         "lookAt": [
           { "type": "say", "text": "A heavy metal hatch, sealed with a brass lock." }
@@ -68,7 +68,7 @@
               { "type": "say", "text": "The key fits! The hatch grinds open." },
               { "type": "setFlag", "key": "hatchOpen", "value": true },
               { "type": "wait", "ms": 800 },
-              { "type": "goTo", "room": "room2", "spawnX": 110, "spawnY": 290 }
+              { "type": "goTo", "room": "room2", "spawnX": 55, "spawnY": 145 }
             ],
             "else": [
               { "type": "say", "text": "It's locked tight. I need a key." }
