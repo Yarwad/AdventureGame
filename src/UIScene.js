@@ -27,8 +27,8 @@ const FONT_KEY = 'pixel';
 const FONT_SIZE = 8;
 const INV_SLOT  = 22;
 const INV_PAD   = 3;
-const BTN_W     = 52;
-const BTN_H     = 14;
+const BTN_W     = 75;
+const BTN_H     = 16;
 const BTN_PAD   = 2;
 
 export class UIScene extends Phaser.Scene {
@@ -224,7 +224,7 @@ export class UIScene extends Phaser.Scene {
   // ─── Inventory slots ─────────────────────────────────────────────────────────
 
   _buildInvSlots(barY) {
-    const startX   = GAME_W * 0.55;
+    const startX   = 235;
     const slotY    = barY + (UI_STRIP_H - INV_SLOT) / 2 + 4;
     const items    = this.inventory ? this.inventory.getAll() : [];
     const maxSlots = Math.floor((GAME_W - startX - 36) / (INV_SLOT + INV_PAD));
