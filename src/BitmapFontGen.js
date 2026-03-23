@@ -1,22 +1,22 @@
+import Phaser from 'phaser';
+
 /**
- * Generates a pixel-perfect bitmap font from Press Start 2P at a given size.
- * Must be called before any bitmapText is created.
+ * Renders Press Start 2P glyphs to a canvas, adds it as a texture,
+ * then uses Phaser's RetroFont.Parse() to register a proper bitmap font.
  */
 export function createPixelFont(scene, key = 'pixel', size = 8) {
-  const chars =
-    ' !"#$%&\'()*+,-./0123456789:;<=>?@' +
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`' +
-    'abcdefghijklmnopqrstuvwxyz{|}~';
+  if (scene.cache.bitmapFont.has(key)) return;
 
-  // Press Start 2P is monospaced but glyphs are wider than tall at small sizes.
-  // Measure actual glyph width using an off-screen canvas.
-  const measure = document.createElement('canvas').getContext('2d');
-  measure.font = `${size}px "Press Start 2P"`;
-  const cellW = Math.ceil(measure.measureText('M').width) + 1;
-  const cellH = size + 4;
+  const chars = Phaser.GameObjects.RetroFont.TEXT_SET1;
   const cols = chars.length;
 
-  // Render all glyphs to a single row
+  // Measure character width with the loaded web font
+  const measure = document.createElement('canvas').getContext('2d');
+  measure.font = `${size}px "Press Start 2P"`;
+  const cellW = Math.ceil(measure.measureText('W').width) + 1;
+  const cellH = size + 4;
+
+  // Render all glyphs in a single row on an off-screen canvas
   const canvas = document.createElement('canvas');
   canvas.width = cols * cellW;
   canvas.height = cellH;
@@ -30,44 +30,18 @@ export function createPixelFont(scene, key = 'pixel', size = 8) {
     ctx.fillText(chars[i], i * cellW, 2);
   }
 
-  // Register as a Phaser texture
-  if (scene.textures.exists(key)) return; // already created
+  // Add canvas as a Phaser texture
   scene.textures.addCanvas(key, canvas);
 
-  // Build bitmap font data manually
-  const data = {
-    font: key,
-    size: size,
-    lineHeight: cellH,
-    retroFont: true,
-    chars: {},
-  };
-
-  for (let i = 0; i < chars.length; i++) {
-    const code = chars.charCodeAt(i);
-    data.chars[code] = {
-      x: i * cellW,
-      y: 0,
-      width: cellW,
-      height: cellH,
-      centerX: Math.floor(cellW / 2),
-      centerY: Math.floor(cellH / 2),
-      xOffset: 0,
-      yOffset: 0,
-      xAdvance: cellW,
-      data: {},
-      kerning: {},
-    };
-  }
-
-  // Remove failed parse attempt if any, then add our data
-  if (scene.cache.bitmapFont.has(key)) {
-    scene.cache.bitmapFont.remove(key);
-  }
-
-  scene.cache.bitmapFont.add(key, {
-    data: data,
-    texture: key,
-    frame: '__BASE',
+  // Use Phaser's built-in RetroFont parser
+  const fontData = Phaser.GameObjects.RetroFont.Parse(scene, {
+    image: key,
+    width: cellW,
+    height: cellH,
+    chars: chars,
+    charsPerRow: cols,
+    spacing: { x: 0, y: 0 },
   });
+
+  scene.cache.bitmapFont.add(key, fontData);
 }
