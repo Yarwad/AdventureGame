@@ -1,6 +1,10 @@
 import Phaser from 'phaser';
 import { GAME_W } from '../config.js';
 
+const FONT_KEY = 'pixel';
+const FONT_SIZE = 8;
+const MAX_LINE_CHARS = 20;
+
 export class DialogueSystem {
   constructor(scene) {
     this.scene = scene;
@@ -16,7 +20,7 @@ export class DialogueSystem {
 
       const speaker = speakerSprite || this.scene.player?.sprite;
       const sx = speaker ? speaker.x : GAME_W / 2;
-      const sy = speaker ? (speaker.y - speaker.displayHeight - 4) : 80;
+      const sy = speaker ? (speaker.y - speaker.displayHeight - 4) : 40;
 
       this._buildBubble(text, sx, sy);
 
@@ -26,18 +30,31 @@ export class DialogueSystem {
     });
   }
 
+  _wrapText(text) {
+    const words = text.split(' ');
+    const lines = [];
+    let line = '';
+
+    for (const word of words) {
+      const test = line ? line + ' ' + word : word;
+      if (test.length > MAX_LINE_CHARS && line) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = test;
+      }
+    }
+    if (line) lines.push(line);
+    return lines.join('\n');
+  }
+
   _buildBubble(text, cx, cy) {
     const pad = 4;
-    const maxW = 120;
+    const wrapped = this._wrapText(text);
 
-    const textObj = this.scene.add.text(0, 0, text, {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '6px',
-      color: '#ffffff',
-      wordWrap: { width: maxW - pad * 2 },
-      align: 'center',
-    });
-    textObj.setDepth(1000);
+    const textObj = this.scene.add.bitmapText(0, 0, FONT_KEY, wrapped, FONT_SIZE)
+      .setTint(0xffffff)
+      .setDepth(1000);
 
     const tw = textObj.width + pad * 2;
     const th = textObj.height + pad * 2;
@@ -48,9 +65,9 @@ export class DialogueSystem {
 
     const bg = this.scene.add.graphics();
     bg.fillStyle(0x000000, 0.85);
-    bg.fillRoundedRect(bx, by, tw, th, 4);
+    bg.fillRoundedRect(bx, by, tw, th, 3);
     bg.lineStyle(1, 0xffffff, 0.7);
-    bg.strokeRoundedRect(bx, by, tw, th, 4);
+    bg.strokeRoundedRect(bx, by, tw, th, 3);
     bg.setDepth(999);
 
     textObj.setPosition(bx + pad, by + pad);

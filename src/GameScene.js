@@ -5,6 +5,7 @@ import { ActionRunner } from './systems/ActionRunner.js';
 import { DialogueSystem } from './systems/DialogueSystem.js';
 import { RoomSystem } from './systems/RoomSystem.js';
 import { inventory } from './systems/InventorySystem.js';
+import { createPixelFont } from './BitmapFontGen.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -23,6 +24,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    // Generate pixel-perfect bitmap font from Press Start 2P
+    createPixelFont(this, 'pixel', 8);
+
     // Use module-level inventory singleton (no registry timing issues)
     this.inventory = inventory;
 

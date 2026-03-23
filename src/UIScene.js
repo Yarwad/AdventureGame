@@ -16,14 +16,15 @@ const C = {
   btnNormal: 0x1e2a5a,
   btnHover:  0x2e4a8a,
   btnActive: 0x4a70cc,
-  btnText:   '#c8d4ff',
+  btnTint:   0xc8d4ff,
   slotBg:    0x0d0d1a,
   slotBorder: 0x3a3a5e,
   slotActive: 0x6a6aee,
-  statusText: '#9999cc',
+  statusTint: 0x9999cc,
 };
 
-const FONT = { fontFamily: '"Press Start 2P", monospace' };
+const FONT_KEY = 'pixel';
+const FONT_SIZE = 8;
 const INV_SLOT  = 22;
 const INV_PAD   = 3;
 const BTN_W     = 42;
@@ -51,7 +52,7 @@ export class UIScene extends Phaser.Scene {
 
     this.inventory = inventory;
 
-    // Build permanent toggle button
+    // Build permanent toggle button (keep as regular text for ☰ symbol)
     this._createToggle();
 
     // Build mode-specific UI
@@ -101,8 +102,8 @@ export class UIScene extends Phaser.Scene {
     const tx = GAME_W - 6;
     const ty = GAME_H - 6;
 
-    this._toggleBtn = this.add.text(tx, ty, '☰', {
-      ...FONT,
+    this._toggleBtn = this.add.text(tx, ty, '=', {
+      fontFamily: '"Press Start 2P", monospace',
       fontSize: '8px',
       color: '#ffffff',
       backgroundColor: '#333355',
@@ -148,15 +149,13 @@ export class UIScene extends Phaser.Scene {
     this._uiBar.lineBetween(0, barY, GAME_W, barY);
 
     // Status line
-    this._statusTxt = this.add.text(4, barY + 2, '', {
-      ...FONT,
-      fontSize: '5px',
-      color: C.statusText,
-    }).setDepth(1001);
+    this._statusTxt = this.add.bitmapText(4, barY + 2, FONT_KEY, '', FONT_SIZE)
+      .setTint(C.statusTint)
+      .setDepth(1001);
 
     // Verb buttons — 3 on top row, 2 on bottom row (left half)
     const verbBaseX = 3;
-    const verbBaseY = barY + 10;
+    const verbBaseY = barY + 12;
 
     VERBS.forEach((verb, i) => {
       const col = i % 3;
@@ -174,11 +173,13 @@ export class UIScene extends Phaser.Scene {
 
   _makeVerbButton(verb, bx, by) {
     const bg = this.add.graphics().setDepth(1001);
-    const txt = this.add.text(bx + BTN_W / 2, by + BTN_H / 2, verb.label, {
-      ...FONT,
-      fontSize: '5px',
-      color: C.btnText,
-    }).setOrigin(0.5, 0.5).setDepth(1002);
+    const txt = this.add.bitmapText(
+      bx + BTN_W / 2, by + BTN_H / 2 - FONT_SIZE / 2,
+      FONT_KEY, verb.label, FONT_SIZE
+    ).setTint(C.btnTint).setDepth(1002);
+
+    // Center the text horizontally
+    txt.setX(bx + (BTN_W - txt.width) / 2);
 
     const zone = this.add.zone(bx, by, BTN_W, BTN_H)
       .setOrigin(0, 0)
@@ -232,12 +233,12 @@ export class UIScene extends Phaser.Scene {
       let zone  = null;
 
       if (item) {
-        label = this.add.text(sx + INV_SLOT / 2, slotY + INV_SLOT / 2,
-          item.label.slice(0, 6),
-          { ...FONT, fontSize: '4px', color: '#ffffff', align: 'center',
-            wordWrap: { width: INV_SLOT - 2 } })
-          .setOrigin(0.5, 0.5)
-          .setDepth(1002);
+        const shortLabel = item.label.slice(0, 4);
+        label = this.add.bitmapText(
+          sx + INV_SLOT / 2, slotY + INV_SLOT / 2 - FONT_SIZE / 2,
+          FONT_KEY, shortLabel, FONT_SIZE
+        ).setTint(0xffffff).setDepth(1002);
+        label.setX(sx + (INV_SLOT - label.width) / 2);
 
         zone = this.add.zone(sx, slotY, INV_SLOT, INV_SLOT)
           .setOrigin(0, 0)
@@ -300,7 +301,7 @@ export class UIScene extends Phaser.Scene {
     }
     const verb      = this.registry.get('activeVerb') || 'lookAt';
     const verbLabel = VERBS.find(v => v.id === verb)?.label || verb;
-    this._statusTxt.setText(`${verbLabel}  ·  ${hoveredObj.label}`);
+    this._statusTxt.setText(`${verbLabel} - ${hoveredObj.label}`);
   }
 
   // ─── Verb popup (Mode B) ──────────────────────────────────────────────────────
@@ -312,8 +313,8 @@ export class UIScene extends Phaser.Scene {
     const available = VERBS.filter(v => verbs[v.id]);
     if (!available.length) return;
 
-    const btnW   = 44;
-    const btnH   = 10;
+    const btnW   = 56;
+    const btnH   = 12;
     const bPad   = 1;
     const hPad   = 3;
     const popW   = btnW + hPad * 2;
@@ -339,11 +340,9 @@ export class UIScene extends Phaser.Scene {
       rowBg.fillRoundedRect(hPad, by, btnW, btnH, 2);
       container.add(rowBg);
 
-      const txt = this.add.text(popW / 2, by + btnH / 2, verb.label, {
-        ...FONT,
-        fontSize: '5px',
-        color: '#c8d4ff',
-      }).setOrigin(0.5, 0.5);
+      const txt = this.add.bitmapText(0, by + (btnH - FONT_SIZE) / 2, FONT_KEY, verb.label, FONT_SIZE)
+        .setTint(0xc8d4ff);
+      txt.setX((popW - txt.width) / 2);
       container.add(txt);
 
       const zone = this.add.zone(hPad, by, btnW, btnH)
