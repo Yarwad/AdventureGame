@@ -30,6 +30,14 @@ export function createPixelFont(scene, key = 'pixel', size = 8) {
     ctx.fillText(chars[i], i * cellW, 2);
   }
 
+  // Remove anti-aliasing: threshold every pixel to fully opaque or fully transparent
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const pixels = imageData.data;
+  for (let i = 3; i < pixels.length; i += 4) {
+    pixels[i] = pixels[i] > 128 ? 255 : 0;
+  }
+  ctx.putImageData(imageData, 0, 0);
+
   // Add canvas as a Phaser texture
   scene.textures.addCanvas(key, canvas);
 
