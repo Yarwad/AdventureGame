@@ -1,7 +1,7 @@
 {
   "id": "room1",
   "title": "Mars Mountain Pass",
-  "background": "/rooms/marsmountain.png",
+  "background": "rooms/marsmountain.png",
   "walkAreaY": [210, 320],
   "depthScale": { "top": 0.45, "bottom": 0.95 },
   "exits": [
@@ -18,14 +18,14 @@
       "id": "brass_key",
       "label": "Brass Key",
       "x": 260, "y": 295,
-      "image": "/items/key.png",
+      "image": "items/key.png",
       "verbs": {
         "lookAt": [
           { "type": "say", "text": "A small brass key, glinting in the alien light." }
         ],
         "pickUp": [
           { "type": "say", "text": "You pocket the key. It might open something." },
-          { "type": "addItem", "id": "brass_key", "label": "Brass Key", "image": "/items/key.png" },
+          { "type": "addItem", "id": "brass_key", "label": "Brass Key", "image": "items/key.png" },
           { "type": "removeWorldItem", "id": "brass_key" }
         ]
       }

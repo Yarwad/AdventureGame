@@ -16,7 +16,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.spritesheet('player_walk', '/assets/player_walk.png', {
+    this.load.spritesheet('player_walk', 'assets/player_walk.png', {
       frameWidth: 64,
       frameHeight: 64,
     });

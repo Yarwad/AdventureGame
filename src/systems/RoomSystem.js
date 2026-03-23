@@ -14,7 +14,7 @@ export class RoomSystem {
   async loadRoom(roomId, spawnX, spawnY) {
     this._cleanup();
 
-    const res = await fetch(`/rooms/${roomId}.json`);
+    const res = await fetch(`rooms/${roomId}.json`);
     const data = await res.json();
     this.currentRoom = data;
 
