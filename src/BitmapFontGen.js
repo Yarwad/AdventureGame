@@ -13,7 +13,7 @@ export function createPixelFont(scene, key = 'pixel', size = 8) {
   // Measure character width with the loaded web font
   const measure = document.createElement('canvas').getContext('2d');
   measure.font = `${size}px "Press Start 2P"`;
-  const cellW = Math.ceil(measure.measureText('W').width) + 1;
+  const cellW = Math.ceil(measure.measureText('W').width) + 2;
   const cellH = size + 4;
 
   // Render all glyphs in a single row on an off-screen canvas
