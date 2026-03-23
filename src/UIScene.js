@@ -3,11 +3,11 @@ import { GAME_W, GAME_H, UI_STRIP_H } from './config.js';
 import { inventory } from './systems/InventorySystem.js';
 
 const VERBS = [
-  { id: 'walkTo',  label: 'Walk To' },
-  { id: 'lookAt',  label: 'Look At' },
+  { id: 'walkTo',  label: 'Walk' },
+  { id: 'lookAt',  label: 'Look' },
   { id: 'pickUp',  label: 'Pick Up' },
   { id: 'use',     label: 'Use' },
-  { id: 'talkTo',  label: 'Talk To' },
+  { id: 'talkTo',  label: 'Talk' },
 ];
 
 const C = {
@@ -25,10 +25,10 @@ const C = {
 
 const FONT_KEY = 'pixel';
 const FONT_SIZE = 8;
-const INV_SLOT  = 22;
+const INV_SLOT  = 18;
 const INV_PAD   = 3;
-const BTN_W     = 75;
-const BTN_H     = 16;
+const BTN_W     = 60;
+const BTN_H     = 14;
 const BTN_PAD   = 2;
 
 export class UIScene extends Phaser.Scene {
@@ -163,19 +163,17 @@ export class UIScene extends Phaser.Scene {
       .setTint(C.statusTint)
       .setDepth(1001);
 
-    // Verb buttons — 3 on top row, 2 on bottom row (left half)
+    // Verb buttons — single row of 5
     const verbBaseX = 3;
     const verbBaseY = barY + 12;
 
     VERBS.forEach((verb, i) => {
-      const col = i % 3;
-      const row = Math.floor(i / 3);
-      const bx  = verbBaseX + col * (BTN_W + BTN_PAD);
-      const by  = verbBaseY + row * (BTN_H + BTN_PAD);
+      const bx = verbBaseX + i * (BTN_W + BTN_PAD);
+      const by = verbBaseY;
       this._makeVerbButton(verb, bx, by);
     });
 
-    // Inventory slots (right side)
+    // Inventory slots (below verbs)
     this._buildInvSlots(barY);
 
     this._highlightActiveVerb();
@@ -224,10 +222,10 @@ export class UIScene extends Phaser.Scene {
   // ─── Inventory slots ─────────────────────────────────────────────────────────
 
   _buildInvSlots(barY) {
-    const startX   = 235;
-    const slotY    = barY + (UI_STRIP_H - INV_SLOT) / 2 + 4;
+    const startX   = 3;
+    const slotY    = barY + 28;
     const items    = this.inventory ? this.inventory.getAll() : [];
-    const maxSlots = Math.floor((GAME_W - startX - 36) / (INV_SLOT + INV_PAD));
+    const maxSlots = Math.min(Math.floor((GAME_W - startX - 30) / (INV_SLOT + INV_PAD)), 12);
 
     for (let i = 0; i < maxSlots; i++) {
       const sx   = startX + i * (INV_SLOT + INV_PAD);
