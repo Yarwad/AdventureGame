@@ -1,3 +1,5 @@
+import { SCALE } from '../config.js';
+
 export class ActionRunner {
   constructor(context) {
     // context: { scene, player, inventory, flags, dialogue }
@@ -48,7 +50,7 @@ export class ActionRunner {
       }
 
       case 'walkTo': {
-        await player.walkTo(action.x, action.y);
+        await player.walkTo(action.x * SCALE, action.y * SCALE);
         break;
       }
 
@@ -92,7 +94,7 @@ export class ActionRunner {
       }
 
       case 'goTo': {
-        await scene.goToRoom(action.room, action.spawnX, action.spawnY);
+        await scene.goToRoom(action.room, action.spawnX * SCALE, action.spawnY * SCALE);
         break;
       }
 

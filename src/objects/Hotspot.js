@@ -31,17 +31,22 @@ export class Hotspot {
       });
     });
 
-    // Debug outline in dev mode
-    if (import.meta.env?.DEV) {
-      this._debug = scene.add.graphics();
-      this._debug.lineStyle(1, 0xff4444, 0.35);
-      this._debug.strokeRect(x, y, w, h);
-      this._debug.setDepth(901);
-    }
+    // Debug outline — toggleable via Settings > Hotspots
+    this._debug = scene.add.graphics();
+    this._debug.lineStyle(1, 0xff4444, 0.35);
+    this._debug.strokeRect(x, y, w, h);
+    this._debug.setDepth(901);
+    this._debug.setVisible(!!scene.registry.get('showHotspots'));
+
+    this._onShowHotspots = (_p, val) => this._debug.setVisible(!!val);
+    scene.registry.events.on('changedata-showHotspots', this._onShowHotspots);
   }
 
   destroy() {
     this.zone.destroy();
-    this._debug?.destroy();
+    if (this._debug) {
+      this.scene.registry.events.off('changedata-showHotspots', this._onShowHotspots);
+      this._debug.destroy();
+    }
   }
 }

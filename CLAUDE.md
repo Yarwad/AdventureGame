@@ -13,7 +13,8 @@ npm run build    # Production build
 
 - Phaser 3 + Vite 7 + vanilla JS (ES modules)
 - No TypeScript, no test framework
-- 640x360 resolution, pixel art (nearest-neighbor upscaling)
+- 640x360 canvas (2x upscale from 320x180 base), pixel art (nearest-neighbor)
+- Room JSON coordinates are in 320x180 base space; `SCALE` in config.js converts to canvas space
 
 ## Architecture
 

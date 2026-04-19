@@ -1,3 +1,5 @@
+import { SCALE } from '../config.js';
+
 export class WorldItem {
   constructor(scene, data) {
     this.scene = scene;
@@ -11,20 +13,21 @@ export class WorldItem {
     if (scene.textures.exists(imgKey)) {
       this.sprite = scene.add.image(data.x, data.y, imgKey)
         .setOrigin(0.5, 1.0)
+        .setScale(SCALE)
         .setDepth(data.y);
     } else {
       // Yellow dot placeholder
-      this.sprite = scene.add.circle(data.x, data.y - 8, 7, 0xffcc00, 1)
+      this.sprite = scene.add.circle(data.x, data.y - 8 * SCALE, 7 * SCALE, 0xffcc00, 1)
         .setDepth(data.y);
       // Outline
       this._outline = scene.add.graphics()
         .setDepth(data.y + 1);
       this._outline.lineStyle(1, 0xffa500, 1);
-      this._outline.strokeCircle(data.x, data.y - 8, 7);
+      this._outline.strokeCircle(data.x, data.y - 8 * SCALE, 7 * SCALE);
     }
 
     // Interaction zone centered on the item
-    const zoneW = 32, zoneH = 32;
+    const zoneW = 32 * SCALE, zoneH = 32 * SCALE;
     this.zone = scene.add.zone(data.x - zoneW / 2, data.y - zoneH, zoneW, zoneH)
       .setOrigin(0, 0)
       .setInteractive({ useHandCursor: true });

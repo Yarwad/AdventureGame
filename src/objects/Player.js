@@ -1,35 +1,64 @@
 import Phaser from 'phaser';
+import { GAME_W, SCALE } from '../config.js';
+
+const DIRS = {
+  right: { key: 'walk_right', start: 0,  end: 5,  idle: 0  },
+  left:  { key: 'walk_left',  start: 6,  end: 11, idle: 6  },
+  down:  { key: 'walk_down',  start: 12, end: 17, idle: 12 },
+  up:    { key: 'walk_up',    start: 18, end: 23, idle: 18 },
+};
 
 export class Player {
-  constructor(scene, x, y, walkAreaY = [100, 160], depthScale = { top: 0.5, bottom: 1.0 }) {
+  constructor(scene, x, y, walkAreaY = [100 * SCALE, 160 * SCALE], depthScale = { top: 0.5, bottom: 1.0 }) {
     this.scene = scene;
     this.walkAreaY = walkAreaY;
     this.depthScale = depthScale;
-    this.speed = 90;
+    this.speed = 90 * SCALE;
     this.target = null;
     this._onArrived = null;
     this._dirMoving = false;
+    this.facing = 'down';
 
-    this.sprite = scene.add.sprite(x, y, 'player_walk', 0);
+    this.sprite = scene.add.sprite(x, y, 'character', DIRS.down.idle);
     this.sprite.setOrigin(0.5, 1.0);
     this._updateScale(y);
     this.sprite.setDepth(y);
 
-    if (!scene.anims.exists('walk')) {
-      scene.anims.create({
-        key: 'walk',
-        frames: scene.anims.generateFrameNumbers('player_walk', { start: 0, end: 7 }),
-        frameRate: 10,
-        repeat: -1,
-      });
+    for (const dir of Object.values(DIRS)) {
+      if (!scene.anims.exists(dir.key)) {
+        scene.anims.create({
+          key: dir.key,
+          frames: scene.anims.generateFrameNumbers('character', { start: dir.start, end: dir.end }),
+          frameRate: 10,
+          repeat: -1,
+        });
+      }
     }
+  }
+
+  _pickFacing(dx, dy) {
+    if (Math.abs(dx) >= Math.abs(dy)) return dx > 0 ? 'right' : 'left';
+    return dy > 0 ? 'down' : 'up';
+  }
+
+  _playWalk(dx, dy) {
+    const next = this._pickFacing(dx, dy);
+    if (this.facing !== next || !this.sprite.anims.isPlaying) {
+      this.facing = next;
+      this.sprite.play(DIRS[next].key);
+    }
+  }
+
+  _idleFrame() {
+    this.sprite.anims.stop();
+    this.sprite.setFrame(DIRS[this.facing].idle);
   }
 
   _updateScale(y) {
     const [minY, maxY] = this.walkAreaY;
     const t = Phaser.Math.Clamp((y - minY) / (maxY - minY || 1), 0, 1);
     const scale = Phaser.Math.Linear(this.depthScale.top, this.depthScale.bottom, t);
-    this.sprite.setScale(scale);
+    this.sprite.setScale(scale * SCALE);
   }
 
   walkTo(x, y) {
@@ -43,8 +72,7 @@ export class Player {
     this.target = null;
     const resolve = this._onArrived;
     this._onArrived = null;
-    this.sprite.anims.stop();
-    this.sprite.setFrame(0);
+    this._idleFrame();
     if (resolve) resolve();
   }
 
@@ -62,12 +90,11 @@ export class Player {
     const dy = this.target.y - this.sprite.y;
     const dist = Math.hypot(dx, dy);
 
-    if (dist < 4) {
+    if (dist < 4 * SCALE) {
       const resolve = this._onArrived;
       this.target = null;
       this._onArrived = null;
-      this.sprite.anims.stop();
-      this.sprite.setFrame(0);
+      this._idleFrame();
       if (resolve) resolve();
       return;
     }
@@ -75,8 +102,7 @@ export class Player {
     const nx = dx / dist;
     const ny = dy / dist;
 
-    this.sprite.setFlipX(nx < 0);
-    if (!this.sprite.anims.isPlaying) this.sprite.play('walk');
+    this._playWalk(nx, ny);
 
     this.sprite.x += nx * this.speed * d;
     this.sprite.y += ny * this.speed * d;
@@ -105,11 +131,10 @@ export class Player {
     const clampedY = Phaser.Math.Clamp(newY, minY, maxY);
 
     // Clamp X to screen bounds
-    const clampedX = Phaser.Math.Clamp(newX, 8, 312);
+    const clampedX = Phaser.Math.Clamp(newX, 8 * SCALE, GAME_W - 8 * SCALE);
 
     this.sprite.setPosition(clampedX, clampedY);
-    this.sprite.setFlipX(nx < 0);
-    if (!this.sprite.anims.isPlaying) this.sprite.play('walk');
+    this._playWalk(nx, ny);
     this._updateScale(clampedY);
     this.sprite.setDepth(clampedY);
     this._dirMoving = true;
@@ -118,10 +143,7 @@ export class Player {
   stopDirection() {
     if (this._dirMoving) {
       this._dirMoving = false;
-      if (!this.target) {
-        this.sprite.anims.stop();
-        this.sprite.setFrame(0);
-      }
+      if (!this.target) this._idleFrame();
     }
   }
 

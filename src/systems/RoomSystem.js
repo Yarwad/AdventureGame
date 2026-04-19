@@ -1,7 +1,7 @@
 import { Hotspot } from '../objects/Hotspot.js';
 import { WorldItem } from '../objects/WorldItem.js';
 import { Character } from '../objects/Character.js';
-import { GAME_W, GAME_H } from '../config.js';
+import { GAME_W, GAME_H, SCALE } from '../config.js';
 
 export class RoomSystem {
   constructor(scene) {
@@ -34,28 +34,31 @@ export class RoomSystem {
       scene.cameras.main.setBackgroundColor(data.backgroundColor || '#111827');
     }
 
-    // Hotspots
+    // Hotspots — scale coordinates from room JSON
     for (const hData of (data.hotspots || [])) {
-      this._entities.push(new Hotspot(scene, hData));
+      const scaled = { ...hData, x: hData.x * SCALE, y: hData.y * SCALE, w: hData.w * SCALE, h: hData.h * SCALE };
+      this._entities.push(new Hotspot(scene, scaled));
     }
 
-    // World items
+    // World items — scale coordinates
     for (const iData of (data.items || [])) {
       const imgKey = `item_${iData.id}`;
       if (iData.image && !scene.textures.exists(imgKey)) {
         await this._loadTexture(imgKey, iData.image).catch(() => {});
       }
-      this._entities.push(new WorldItem(scene, iData));
+      const scaled = { ...iData, x: iData.x * SCALE, y: iData.y * SCALE };
+      this._entities.push(new WorldItem(scene, scaled));
     }
 
-    // Characters
+    // Characters — scale coordinates
     scene.characters.clear();
     for (const cData of (data.characters || [])) {
       const spriteKey = `char_${cData.id}`;
       if (cData.sprite && !scene.textures.exists(spriteKey)) {
         await this._loadTexture(spriteKey, cData.sprite).catch(() => {});
       }
-      const char = new Character(scene, cData);
+      const scaled = { ...cData, x: cData.x * SCALE, y: cData.y * SCALE };
+      const char = new Character(scene, scaled);
       this._entities.push(char);
       scene.characters.set(cData.id, char);
     }
@@ -64,6 +67,10 @@ export class RoomSystem {
     for (const exit of (data.exits || [])) {
       const exitData = {
         ...exit,
+        x: exit.x * SCALE,
+        y: exit.y * SCALE,
+        w: exit.w * SCALE,
+        h: exit.h * SCALE,
         verbs: {
           walkTo: [
             { type: 'goTo', room: exit.toRoom, spawnX: exit.spawnX, spawnY: exit.spawnY },
@@ -73,8 +80,10 @@ export class RoomSystem {
       this._entities.push(new Hotspot(scene, exitData));
     }
 
-    // Update player walk area + depth scale
-    if (data.walkAreaY) scene.player.walkAreaY = data.walkAreaY;
+    // Update player walk area + depth scale (scale Y values)
+    if (data.walkAreaY) {
+      scene.player.walkAreaY = [data.walkAreaY[0] * SCALE, data.walkAreaY[1] * SCALE];
+    }
     if (data.depthScale) scene.player.depthScale = data.depthScale;
 
     // Position player at spawn

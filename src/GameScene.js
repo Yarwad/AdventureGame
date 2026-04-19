@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, UI_STRIP_H } from './config.js';
+import { GAME_W, GAME_H, UI_STRIP_H, SCALE } from './config.js';
 import { Player } from './objects/Player.js';
 import { ActionRunner } from './systems/ActionRunner.js';
 import { DialogueSystem } from './systems/DialogueSystem.js';
@@ -17,15 +17,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.spritesheet('player_walk', 'assets/player_walk.png', {
-      frameWidth: 64,
-      frameHeight: 64,
+    this.load.spritesheet('character', 'assets/character.png', {
+      frameWidth: 34,
+      frameHeight: 86,
     });
   }
 
   create() {
     // Generate pixel-perfect bitmap font from Press Start 2P
-    createPixelFont(this, 'pixel', 8);
+    createPixelFont(this, 'pixel', 8 * SCALE);
 
     // Use module-level inventory singleton (no registry timing issues)
     this.inventory = inventory;
@@ -102,7 +102,7 @@ export class GameScene extends Phaser.Scene {
     // Brief walk marker
     this._walkMarker.clear();
     this._walkMarker.fillStyle(0xffffff, 0.7);
-    this._walkMarker.fillCircle(x, y, 4);
+    this._walkMarker.fillCircle(x, y, 4 * SCALE);
     this.time.delayedCall(500, () => this._walkMarker.clear());
   }
 

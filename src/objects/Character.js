@@ -1,3 +1,5 @@
+import { SCALE } from '../config.js';
+
 export class Character {
   constructor(scene, data) {
     this.scene = scene;
@@ -11,21 +13,22 @@ export class Character {
     if (scene.textures.exists(spriteKey)) {
       this.sprite = scene.add.sprite(data.x, data.y, spriteKey, 0)
         .setOrigin(0.5, 1.0)
+        .setScale(SCALE)
         .setDepth(data.y);
     } else {
       // Placeholder NPC: body + head shapes
       const g = scene.add.graphics();
       g.fillStyle(0x4488ff, 1);
-      g.fillRect(-10, -36, 20, 24);  // body
+      g.fillRect(-10 * SCALE, -36 * SCALE, 20 * SCALE, 24 * SCALE);  // body
       g.fillStyle(0xffccaa, 1);
-      g.fillCircle(0, -42, 8);       // head
+      g.fillCircle(0, -42 * SCALE, 8 * SCALE);       // head
       g.setPosition(data.x, data.y);
       g.setDepth(data.y);
       this.sprite = g;
     }
 
     // Interaction zone
-    const zoneW = 48, zoneH = 64;
+    const zoneW = 48 * SCALE, zoneH = 64 * SCALE;
     this.zone = scene.add.zone(data.x - zoneW / 2, data.y - zoneH, zoneW, zoneH)
       .setOrigin(0, 0)
       .setInteractive({ useHandCursor: true });

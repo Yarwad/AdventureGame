@@ -1,8 +1,8 @@
 {
   "id": "room1",
   "title": "Mars Mountain Pass",
-  "background": "rooms/marsmountain.png",
-  "walkAreaY": [105, 160],
+  "background": "rooms/background_2.png",
+  "walkAreaY": [50, 160],
   "depthScale": { "top": 0.45, "bottom": 0.95 },
   "exits": [
     {

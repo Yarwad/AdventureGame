@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
-import { GAME_W } from '../config.js';
+import { GAME_W, SCALE } from '../config.js';
 
 const FONT_KEY = 'pixel';
-const FONT_SIZE = 8;
+const FONT_SIZE = 8 * SCALE;
 const MAX_LINE_CHARS = 20;
 
 export class DialogueSystem {
@@ -20,7 +20,7 @@ export class DialogueSystem {
 
       const speaker = speakerSprite || this.scene.player?.sprite;
       const sx = speaker ? speaker.x : GAME_W / 2;
-      const sy = speaker ? (speaker.y - speaker.displayHeight - 4) : 40;
+      const sy = speaker ? (speaker.y - speaker.displayHeight - 4 * SCALE) : 40 * SCALE;
 
       this._buildBubble(text, sx, sy);
 
@@ -49,7 +49,7 @@ export class DialogueSystem {
   }
 
   _buildBubble(text, cx, cy) {
-    const pad = 4;
+    const pad = 4 * SCALE;
     const wrapped = this._wrapText(text);
 
     const textObj = this.scene.add.bitmapText(0, 0, FONT_KEY, wrapped, FONT_SIZE)
@@ -60,14 +60,14 @@ export class DialogueSystem {
     const th = textObj.height + pad * 2;
 
     // Clamp bubble to stay on screen
-    const bx = Phaser.Math.Clamp(cx - tw / 2, 4, GAME_W - tw - 4);
-    const by = Math.max(cy - th - 6, 4);
+    const bx = Phaser.Math.Clamp(cx - tw / 2, 4 * SCALE, GAME_W - tw - 4 * SCALE);
+    const by = Math.max(cy - th - 6 * SCALE, 4 * SCALE);
 
     const bg = this.scene.add.graphics();
     bg.fillStyle(0x000000, 0.85);
-    bg.fillRoundedRect(bx, by, tw, th, 3);
+    bg.fillRoundedRect(bx, by, tw, th, 3 * SCALE);
     bg.lineStyle(1, 0xffffff, 0.7);
-    bg.strokeRoundedRect(bx, by, tw, th, 3);
+    bg.strokeRoundedRect(bx, by, tw, th, 3 * SCALE);
     bg.setDepth(999);
 
     textObj.setPosition(bx + pad, by + pad);
