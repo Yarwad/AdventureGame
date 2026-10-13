@@ -4,6 +4,7 @@ import { Player } from './objects/Player.js';
 import { ActionRunner } from './systems/ActionRunner.js';
 import { DialogueSystem } from './systems/DialogueSystem.js';
 import { RoomSystem } from './systems/RoomSystem.js';
+import { BlockerSystem } from './systems/BlockerSystem.js';
 import { inventory } from './systems/InventorySystem.js';
 import { createPixelFont } from './BitmapFontGen.js';
 
@@ -32,7 +33,7 @@ export class GameScene extends Phaser.Scene {
 
     // Initialize registry defaults for UI state
     if (!this.registry.get('uiMode')) {
-      this.registry.set('uiMode', 'verbBar');
+      this.registry.set('uiMode', 'popup');
       this.registry.set('activeVerb', 'lookAt');
       this.registry.set('hoveredObject', null);
       this.registry.set('statusText', '');
@@ -44,6 +45,7 @@ export class GameScene extends Phaser.Scene {
     // Systems
     this.dialogue = new DialogueSystem(this);
     this.roomSystem = new RoomSystem(this);
+    this.blockers = new BlockerSystem(this);
 
     // Action runner
     this._runner = new ActionRunner({
@@ -59,6 +61,7 @@ export class GameScene extends Phaser.Scene {
 
     // Input: click on background = walk (or dismiss dialogue)
     this.input.on('pointerdown', (pointer) => {
+      if (this.registry.get('blockerDrawMode')) return;
       this.dialogue.dismissOnClick();
 
       const uiMode = this.registry.get('uiMode') || 'verbBar';
@@ -166,5 +169,22 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.player.update(dt);
+    this._checkEdgeExit();
+  }
+
+  _checkEdgeExit() {
+    if (this._runner.running) return;
+    const ee = this.roomSystem.currentRoom?.edgeExits;
+    if (!ee) return;
+    const px = this.player.x, py = this.player.y;
+    const margin = 12 * SCALE;
+    let exit = null;
+    if      (ee.right  && px >= GAME_W - margin) exit = ee.right;
+    else if (ee.left   && px <= margin)          exit = ee.left;
+    else if (ee.top    && py <= margin)          exit = ee.top;
+    else if (ee.bottom && py >= GAME_H - margin) exit = ee.bottom;
+    if (exit) {
+      this._runner.run([{ type: 'goTo', room: exit.toRoom, spawnX: exit.spawnX, spawnY: exit.spawnY }]);
+    }
   }
 }

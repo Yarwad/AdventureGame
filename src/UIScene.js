@@ -43,6 +43,9 @@ export class UIScene extends Phaser.Scene {
     this._settingsPanel = null;
     this._gearBtn     = null;
     this._rulers      = null;
+    this._currentTab  = 'main';
+    this._tabContent  = null;
+    this._numRowListeners = [];
   }
 
   create() {
@@ -50,7 +53,7 @@ export class UIScene extends Phaser.Scene {
     this.cameras.main.transparent = true;
 
     // Ensure registry defaults (GameScene.create runs first, but be safe)
-    if (!this.registry.get('uiMode')) this.registry.set('uiMode', 'verbBar');
+    if (!this.registry.get('uiMode')) this.registry.set('uiMode', 'popup');
     if (!this.registry.get('activeVerb')) this.registry.set('activeVerb', 'lookAt');
 
     this.inventory = inventory;
@@ -65,6 +68,15 @@ export class UIScene extends Phaser.Scene {
     }
     if (this.registry.get('showRulers') === undefined) {
       this.registry.set('showRulers', false);
+    }
+    if (this.registry.get('playerScaleTop') === undefined) {
+      this.registry.set('playerScaleTop', 0.5);
+    }
+    if (this.registry.get('playerScaleBottom') === undefined) {
+      this.registry.set('playerScaleBottom', 1.0);
+    }
+    if (this.registry.get('blockerDrawMode') === undefined) {
+      this.registry.set('blockerDrawMode', false);
     }
 
     const initUI = () => {
@@ -440,7 +452,7 @@ export class UIScene extends Phaser.Scene {
   _showSettings() {
     this._hideSettings();
 
-    const panelW = 160 * SCALE;
+    const panelW = 180 * SCALE;
     const panelH = 96 * SCALE;
     const px = Math.floor((GAME_W - panelW) / 2);
     const py = Math.floor((GAME_H - panelH) / 2) - 10 * SCALE;
@@ -459,17 +471,116 @@ export class UIScene extends Phaser.Scene {
     title.setX((panelW - title.width) / 2);
     container.add(title);
 
-    this._addToggleRow(container, panelW, 'Arrow Keys', 'arrowKeys',    22 * SCALE);
-    this._addToggleRow(container, panelW, 'Hotspots',   'showHotspots', 40 * SCALE);
-    this._addToggleRow(container, panelW, 'Rulers',     'showRulers',   58 * SCALE);
-
     const closeBtn = this.add.bitmapText(panelW - 12 * SCALE, 4 * SCALE, FONT_KEY, 'X', FONT_SIZE)
       .setTint(0xff6666)
       .setInteractive({ useHandCursor: true });
     container.add(closeBtn);
     closeBtn.on('pointerdown', () => this._hideSettings());
 
+    this._buildTabStrip(container, panelW, 18 * SCALE);
+
+    this._tabContent = this.add.container(0, 36 * SCALE);
+    container.add(this._tabContent);
+    this._buildTabContent(panelW);
+
     this._settingsPanel = container;
+  }
+
+  _buildTabStrip(container, panelW, stripY) {
+    const tabs = [
+      { id: 'main',  label: 'Main' },
+      { id: 'size',  label: 'Size' },
+      { id: 'tools', label: 'Tools' },
+    ];
+    const tabW = 50 * SCALE;
+    const tabH = 12 * SCALE;
+    const startX = 10 * SCALE;
+    const gap = 2 * SCALE;
+
+    tabs.forEach((tab, i) => {
+      const tx = startX + i * (tabW + gap);
+      const active = this._currentTab === tab.id;
+
+      const tabBg = this.add.graphics();
+      tabBg.fillStyle(active ? C.btnActive : C.btnNormal, 1);
+      tabBg.fillRoundedRect(tx, stripY, tabW, tabH, 2 * SCALE);
+      tabBg.lineStyle(1, 0x6a6aee, 1);
+      tabBg.strokeRoundedRect(tx, stripY, tabW, tabH, 2 * SCALE);
+      container.add(tabBg);
+
+      const tabTxt = this.add.bitmapText(0, stripY + (tabH - FONT_SIZE) / 2, FONT_KEY, tab.label, FONT_SIZE)
+        .setTint(0xffffff);
+      tabTxt.setX(tx + (tabW - tabTxt.width) / 2);
+      container.add(tabTxt);
+
+      const tabZone = this.add.zone(tx, stripY, tabW, tabH)
+        .setOrigin(0, 0)
+        .setInteractive({ useHandCursor: true });
+      container.add(tabZone);
+
+      tabZone.on('pointerdown', () => {
+        if (this._currentTab !== tab.id) {
+          this._currentTab = tab.id;
+          this._showSettings();
+        }
+      });
+    });
+  }
+
+  _buildTabContent(panelW) {
+    if (this._currentTab === 'main') {
+      this._addToggleRow(this._tabContent, panelW, 'Arrow Keys', 'arrowKeys',    0);
+      this._addToggleRow(this._tabContent, panelW, 'Hotspots',   'showHotspots', 18 * SCALE);
+      this._addToggleRow(this._tabContent, panelW, 'Rulers',     'showRulers',   36 * SCALE);
+    } else if (this._currentTab === 'size') {
+      const opts = { min: 0.05, max: 2.0, step: 0.05, decimals: 2 };
+      this._addNumberRow(this._tabContent, panelW, 'Farthest', 'playerScaleTop',    0,          opts);
+      this._addNumberRow(this._tabContent, panelW, 'Closeup',  'playerScaleBottom', 18 * SCALE, opts);
+      this._addButtonRow(this._tabContent, panelW, 'Save to Room', 36 * SCALE, async (btn) => {
+        const roomId = this.registry.get('currentRoom');
+        const top = Number(this.registry.get('playerScaleTop') ?? 0);
+        const bot = Number(this.registry.get('playerScaleBottom') ?? 0);
+        await this._saveRoom(roomId, { depthScale: { top, bottom: bot } }, btn, 'Save to Room');
+      });
+    } else if (this._currentTab === 'tools') {
+      this._addToggleRow(this._tabContent, panelW, 'Draw Blockers', 'blockerDrawMode', 0);
+      this._addButtonRow(this._tabContent, panelW, 'Clear All', 18 * SCALE, () => {
+        this.scene.get('GameScene').blockers?.clearAll();
+      });
+      this._addButtonRow(this._tabContent, panelW, 'Save to Room', 36 * SCALE, async (btn) => {
+        const gs = this.scene.get('GameScene');
+        const roomId = this.registry.get('currentRoom');
+        const baseBlockers = (gs.blockers?.blockers ?? []).map(b => ({
+          x: Math.round(b.x / SCALE),
+          y: Math.round(b.y / SCALE),
+          w: Math.round(b.w / SCALE),
+          h: Math.round(b.h / SCALE),
+        }));
+        const ok = await this._saveRoom(roomId, { blockers: baseBlockers }, btn, 'Save to Room');
+        if (ok) gs.blockers?.load(baseBlockers);
+      });
+    }
+  }
+
+  async _saveRoom(roomId, patch, btn, originalLabel) {
+    const finish = (label) => {
+      btn.setLabel(label);
+      this.time.delayedCall(1200, () => { if (btn.txt.active) btn.setLabel(originalLabel); });
+    };
+    if (!roomId) { finish('No room'); return false; }
+    try {
+      const res = await fetch('/__save-room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId, patch }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      finish('Saved!');
+      return true;
+    } catch (e) {
+      finish('Failed');
+      return false;
+    }
   }
 
   _addToggleRow(container, panelW, label, registryKey, rowY) {
@@ -514,11 +625,127 @@ export class UIScene extends Phaser.Scene {
     });
   }
 
+  _addNumberRow(container, panelW, label, registryKey, rowY, opts) {
+    const { min = 0, max = 999, step = 1, decimals = 2 } = opts || {};
+
+    const labelTxt = this.add.bitmapText(10 * SCALE, rowY + 2 * SCALE, FONT_KEY, label, FONT_SIZE)
+      .setTint(0xc8d4ff);
+    container.add(labelTxt);
+
+    const btnW = 12 * SCALE;
+    const btnH = 12 * SCALE;
+    const valueW = 32 * SCALE;
+    const rightEdge = panelW - 10 * SCALE;
+
+    const incX = rightEdge - btnW;
+    const valX = incX - valueW;
+    const decX = valX - btnW;
+
+    const drawBtn = (gfx, bx, color) => {
+      gfx.clear();
+      gfx.fillStyle(color, 1);
+      gfx.fillRoundedRect(bx, rowY, btnW, btnH, 2 * SCALE);
+      gfx.lineStyle(1, 0x6a6aee, 1);
+      gfx.strokeRoundedRect(bx, rowY, btnW, btnH, 2 * SCALE);
+    };
+
+    const decBg = this.add.graphics();
+    drawBtn(decBg, decX, 0x333355);
+    container.add(decBg);
+
+    const decGlyph = this.add.bitmapText(decX + (btnW - FONT_SIZE) / 2, rowY + 2 * SCALE, FONT_KEY, '<', FONT_SIZE)
+      .setTint(0xffffff);
+    container.add(decGlyph);
+
+    const incBg = this.add.graphics();
+    drawBtn(incBg, incX, 0x333355);
+    container.add(incBg);
+
+    const incGlyph = this.add.bitmapText(incX + (btnW - FONT_SIZE) / 2, rowY + 2 * SCALE, FONT_KEY, '>', FONT_SIZE)
+      .setTint(0xffffff);
+    container.add(incGlyph);
+
+    const valTxt = this.add.bitmapText(0, rowY + 2 * SCALE, FONT_KEY, '', FONT_SIZE)
+      .setTint(0xffffff);
+    container.add(valTxt);
+
+    const draw = () => {
+      const v = this.registry.get(registryKey);
+      valTxt.setText(v === undefined ? '-.--' : Number(v).toFixed(decimals));
+      valTxt.setX(valX + (valueW - valTxt.width) / 2);
+    };
+
+    draw();
+    this.registry.events.on(`changedata-${registryKey}`, draw);
+    this._numRowListeners.push({ key: registryKey, draw });
+
+    const setVal = (newVal) => {
+      const snapped = Math.round(newVal / step) * step;
+      const clamped = Phaser.Math.Clamp(snapped, min, max);
+      this.registry.set(registryKey, Number(clamped.toFixed(decimals + 1)));
+    };
+
+    const decZone = this.add.zone(decX, rowY, btnW, btnH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    container.add(decZone);
+    decZone.on('pointerdown', () => setVal((this.registry.get(registryKey) ?? min) - step));
+    decZone.on('pointerover', () => drawBtn(decBg, decX, 0x4a4aaa));
+    decZone.on('pointerout',  () => drawBtn(decBg, decX, 0x333355));
+
+    const incZone = this.add.zone(incX, rowY, btnW, btnH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    container.add(incZone);
+    incZone.on('pointerdown', () => setVal((this.registry.get(registryKey) ?? min) + step));
+    incZone.on('pointerover', () => drawBtn(incBg, incX, 0x4a4aaa));
+    incZone.on('pointerout',  () => drawBtn(incBg, incX, 0x333355));
+  }
+
+  _addButtonRow(container, panelW, label, rowY, onClick) {
+    const btnW = 100 * SCALE;
+    const btnH = 12 * SCALE;
+    const btnX = (panelW - btnW) / 2;
+
+    const bg = this.add.graphics();
+    const drawBg = (color) => {
+      bg.clear();
+      bg.fillStyle(color, 1);
+      bg.fillRoundedRect(btnX, rowY, btnW, btnH, 2 * SCALE);
+      bg.lineStyle(1, 0x6a6aee, 1);
+      bg.strokeRoundedRect(btnX, rowY, btnW, btnH, 2 * SCALE);
+    };
+    drawBg(C.btnNormal);
+    container.add(bg);
+
+    const txt = this.add.bitmapText(0, rowY + (btnH - FONT_SIZE) / 2, FONT_KEY, label, FONT_SIZE)
+      .setTint(0xffffff);
+    txt.setX(btnX + (btnW - txt.width) / 2);
+    container.add(txt);
+
+    const btn = {
+      txt,
+      setLabel(text) {
+        txt.setText(text);
+        txt.setX(btnX + (btnW - txt.width) / 2);
+      },
+    };
+
+    const zone = this.add.zone(btnX, rowY, btnW, btnH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    container.add(zone);
+    zone.on('pointerdown', () => onClick(btn));
+    zone.on('pointerover', () => drawBg(C.btnHover));
+    zone.on('pointerout',  () => drawBg(C.btnNormal));
+
+    return btn;
+  }
+
   _hideSettings() {
+    for (const r of this._numRowListeners) {
+      this.registry.events.off(`changedata-${r.key}`, r.draw);
+    }
+    this._numRowListeners = [];
     if (this._settingsPanel) {
       this._settingsPanel.destroy(true);
       this._settingsPanel = null;
     }
+    this._tabContent = null;
   }
 
   // ─── Rulers ─────────────────────────────────────────────────────────────────

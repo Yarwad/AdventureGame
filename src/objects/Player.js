@@ -34,6 +34,17 @@ export class Player {
         });
       }
     }
+
+    // Live-tweakable depth scale via Settings panel
+    this._onScaleChange = () => {
+      const top = scene.registry.get('playerScaleTop');
+      const bot = scene.registry.get('playerScaleBottom');
+      if (top !== undefined) this.depthScale.top = top;
+      if (bot !== undefined) this.depthScale.bottom = bot;
+      this._updateScale(this.sprite.y);
+    };
+    scene.registry.events.on('changedata-playerScaleTop',    this._onScaleChange);
+    scene.registry.events.on('changedata-playerScaleBottom', this._onScaleChange);
   }
 
   _pickFacing(dx, dy) {
@@ -104,8 +115,20 @@ export class Player {
 
     this._playWalk(nx, ny);
 
-    this.sprite.x += nx * this.speed * d;
-    this.sprite.y += ny * this.speed * d;
+    const newX = this.sprite.x + nx * this.speed * d;
+    const newY = this.sprite.y + ny * this.speed * d;
+
+    if (this.scene.blockers?.isBlocked(newX, newY)) {
+      const resolve = this._onArrived;
+      this.target = null;
+      this._onArrived = null;
+      this._idleFrame();
+      if (resolve) resolve();
+      return;
+    }
+
+    this.sprite.x = newX;
+    this.sprite.y = newY;
 
     this._updateScale(this.sprite.y);
     this.sprite.setDepth(this.sprite.y);
@@ -133,10 +156,24 @@ export class Player {
     // Clamp X to screen bounds
     const clampedX = Phaser.Math.Clamp(newX, 8 * SCALE, GAME_W - 8 * SCALE);
 
-    this.sprite.setPosition(clampedX, clampedY);
+    // Blocker collision: try full move, then X-only, then Y-only (slide)
+    const blockers = this.scene.blockers;
+    let finalX = clampedX, finalY = clampedY;
+    if (blockers?.isBlocked(clampedX, clampedY)) {
+      if (!blockers.isBlocked(clampedX, this.sprite.y)) {
+        finalY = this.sprite.y;
+      } else if (!blockers.isBlocked(this.sprite.x, clampedY)) {
+        finalX = this.sprite.x;
+      } else {
+        finalX = this.sprite.x;
+        finalY = this.sprite.y;
+      }
+    }
+
+    this.sprite.setPosition(finalX, finalY);
     this._playWalk(nx, ny);
-    this._updateScale(clampedY);
-    this.sprite.setDepth(clampedY);
+    this._updateScale(finalY);
+    this.sprite.setDepth(finalY);
     this._dirMoving = true;
   }
 

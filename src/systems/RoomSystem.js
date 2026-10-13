@@ -34,6 +34,9 @@ export class RoomSystem {
       scene.cameras.main.setBackgroundColor(data.backgroundColor || '#111827');
     }
 
+    // Blockers (no-walk areas)
+    if (scene.blockers) scene.blockers.load(data.blockers || []);
+
     // Hotspots — scale coordinates from room JSON
     for (const hData of (data.hotspots || [])) {
       const scaled = { ...hData, x: hData.x * SCALE, y: hData.y * SCALE, w: hData.w * SCALE, h: hData.h * SCALE };
@@ -84,7 +87,10 @@ export class RoomSystem {
     if (data.walkAreaY) {
       scene.player.walkAreaY = [data.walkAreaY[0] * SCALE, data.walkAreaY[1] * SCALE];
     }
-    if (data.depthScale) scene.player.depthScale = data.depthScale;
+    if (data.depthScale) {
+      scene.registry.set('playerScaleTop',    data.depthScale.top);
+      scene.registry.set('playerScaleBottom', data.depthScale.bottom);
+    }
 
     // Position player at spawn
     if (spawnX !== undefined && spawnY !== undefined) {
