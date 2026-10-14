@@ -43,6 +43,8 @@ export class UIScene extends Phaser.Scene {
     this._settingsPanel = null;
     this._gearBtn     = null;
     this._rulers      = null;
+    this._painterOverlay    = null;
+    this._painterEscHandler = null;
     this._currentTab  = 'main';
     this._tabContent  = null;
     this._numRowListeners = [];
@@ -624,6 +626,7 @@ export class UIScene extends Phaser.Scene {
         const ok = await this._saveRoom(roomId, { blockers: baseBlockers }, btn, 'Save to Room');
         if (ok) gs.blockers?.load(baseBlockers);
       });
+      this._addButtonRow(this._tabContent, panelW, 'Open Painter', 54 * SCALE, () => this._openPainter());
     }
   }
 
@@ -839,6 +842,61 @@ export class UIScene extends Phaser.Scene {
       this._settingsPanel = null;
     }
     this._tabContent = null;
+  }
+
+  // ─── Pixel Painter overlay (loads public/paint.html over the game) ────────────
+
+  _openPainter() {
+    this._hideSettings();
+    this.scene.pause('GameScene');
+
+    if (this._painterOverlay) {
+      this._painterOverlay.style.display = 'flex';
+    } else {
+      const overlay = document.createElement('div');
+      overlay.id = 'painter-overlay';
+      overlay.style.cssText =
+        'position:fixed;inset:0;z-index:10000;background:#06060a;display:flex;flex-direction:column';
+
+      const bar = document.createElement('div');
+      bar.style.cssText =
+        "flex:0 0 auto;background:#12122a;border-bottom:1px solid #3a3a7e;padding:6px 10px;" +
+        "display:flex;align-items:center;gap:10px;font-family:'Press Start 2P',monospace;font-size:10px;color:#c8d4ff";
+
+      const title = document.createElement('span');
+      title.textContent = 'PIXEL PAINTER';
+
+      const closeBtn = document.createElement('button');
+      closeBtn.textContent = '✕ Back to game';
+      closeBtn.style.cssText =
+        "margin-left:auto;background:#1e2a5a;color:#fff;border:1px solid #3a3a7e;" +
+        "padding:6px 12px;font-family:inherit;font-size:10px;cursor:pointer";
+      closeBtn.onclick = () => this._closePainter();
+
+      const frame = document.createElement('iframe');
+      frame.src = 'paint.html';
+      frame.style.cssText = 'flex:1 1 auto;border:0;width:100%';
+
+      bar.appendChild(title);
+      bar.appendChild(closeBtn);
+      overlay.appendChild(bar);
+      overlay.appendChild(frame);
+      document.body.appendChild(overlay);
+      this._painterOverlay = overlay;
+    }
+
+    // Esc returns to the game (works when the toolbar, not the iframe, has focus).
+    this._painterEscHandler = (e) => { if (e.key === 'Escape') this._closePainter(); };
+    window.addEventListener('keydown', this._painterEscHandler);
+  }
+
+  _closePainter() {
+    if (this._painterEscHandler) {
+      window.removeEventListener('keydown', this._painterEscHandler);
+      this._painterEscHandler = null;
+    }
+    if (this._painterOverlay) this._painterOverlay.style.display = 'none';
+    this.scene.resume('GameScene');
   }
 
   // ─── Parser mode (command line + Sierra-style message window) ─────────────────
