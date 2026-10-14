@@ -45,6 +45,17 @@ export class Player {
     };
     scene.registry.events.on('changedata-playerScaleTop',    this._onScaleChange);
     scene.registry.events.on('changedata-playerScaleBottom', this._onScaleChange);
+
+    // Live-tweakable walk-area bounds via Settings panel (base coords → canvas)
+    this._onWalkAreaChange = () => {
+      const top = scene.registry.get('walkAreaTop');
+      const bot = scene.registry.get('walkAreaBottom');
+      if (top !== undefined) this.walkAreaY[0] = top * SCALE;
+      if (bot !== undefined) this.walkAreaY[1] = bot * SCALE;
+      this._updateScale(this.sprite.y);
+    };
+    scene.registry.events.on('changedata-walkAreaTop',    this._onWalkAreaChange);
+    scene.registry.events.on('changedata-walkAreaBottom', this._onWalkAreaChange);
   }
 
   _pickFacing(dx, dy) {

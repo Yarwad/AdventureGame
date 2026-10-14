@@ -1,6 +1,7 @@
 {
   "id": "room1",
   "title": "Mars Mountain Pass",
+  "description": "A narrow pass winds between rust-red Martian peaks. A sealed metal hatch is set into the rock, and the path continues east.",
   "background": "rooms/background_2.png",
   "walkAreaY": [50, 160],
   "depthScale": { "top": 0.45, "bottom": 0.55 },
@@ -13,13 +14,15 @@
       "x": 280, "y": 95, "w": 40, "h": 70,
       "toRoom": "room2",
       "spawnX": 55, "spawnY": 145,
-      "label": "Cave Entrance"
+      "label": "Cave Entrance",
+      "nouns": ["cave", "entrance", "opening"]
     }
   ],
   "items": [
     {
       "id": "brass_key",
       "label": "Brass Key",
+      "nouns": ["key", "brass"],
       "x": 130, "y": 148,
       "image": "items/key.png",
       "verbs": {
@@ -38,6 +41,7 @@
     {
       "id": "sky",
       "label": "Martian Sky",
+      "nouns": ["sky", "moons", "moon"],
       "x": 0, "y": 0, "w": 320, "h": 65,
       "verbs": {
         "lookAt": [
@@ -48,6 +52,7 @@
     {
       "id": "mountains",
       "label": "Mountains",
+      "nouns": ["mountains", "mountain", "peaks", "peak"],
       "x": 0, "y": 65, "w": 320, "h": 40,
       "verbs": {
         "lookAt": [
@@ -58,6 +63,7 @@
     {
       "id": "locked_hatch",
       "label": "Metal Hatch",
+      "nouns": ["hatch", "door", "lock", "metal"],
       "x": 225, "y": 125, "w": 45, "h": 35,
       "verbs": {
         "lookAt": [

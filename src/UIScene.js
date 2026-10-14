@@ -46,6 +46,14 @@ export class UIScene extends Phaser.Scene {
     this._currentTab  = 'main';
     this._tabContent  = null;
     this._numRowListeners = [];
+    this._parserBand      = null;
+    this._parserInputBg   = null;
+    this._parserInputTxt  = null;
+    this._parserBuffer    = '';
+    this._parserMsgs      = [];
+    this._parserKeyHandler = null;
+    this._caretTimer      = null;
+    this._parserCaretOn   = true;
   }
 
   create() {
@@ -78,11 +86,27 @@ export class UIScene extends Phaser.Scene {
     if (this.registry.get('blockerDrawMode') === undefined) {
       this.registry.set('blockerDrawMode', false);
     }
+    if (this.registry.get('walkAreaTop') === undefined) {
+      this.registry.set('walkAreaTop', 100);
+    }
+    if (this.registry.get('walkAreaBottom') === undefined) {
+      this.registry.set('walkAreaBottom', 160);
+    }
+    if (this.registry.get('showWalkArea') === undefined) {
+      this.registry.set('showWalkArea', false);
+    }
+    if (this.registry.get('parserMode') === undefined) {
+      this.registry.set('parserMode', false);
+    }
 
     const initUI = () => {
       this._createToggle();
       this._createGearBtn();
       this._buildModeUI();
+      if (this.registry.get('parserMode')) {
+        this._buildParser();
+        this._toggleBtn?.setVisible(false);
+      }
       this._setupListeners();
       if (this.registry.get('showRulers')) this._createRulers();
     };
@@ -112,6 +136,22 @@ export class UIScene extends Phaser.Scene {
 
     this.registry.events.on('changedata-currentRoom', () => {
       this._hideVerbPopup();
+      if (this.registry.get('parserMode') && this._parserBand) {
+        this.scene.get('GameScene').parser?.describeRoom();
+      }
+    });
+
+    this.registry.events.on('changedata-parserMode', (_p, val) => {
+      this._toggleBtn?.setVisible(!val);
+      if (val) {
+        this._clearModeUI();
+        this._buildParser();
+        this.scene.get('GameScene').parser?.describeRoom();
+      } else {
+        this._destroyParser();
+        this._buildModeUI();
+        this._rebuildInventory();
+      }
     });
 
     this.registry.events.on('changedata-showRulers', (_p, val) => {
@@ -127,6 +167,7 @@ export class UIScene extends Phaser.Scene {
     // Verb popup from GameScene
     const gs = this.scene.get('GameScene');
     gs.events.on('showVerbPopup', (data) => this._showVerbPopup(data));
+    gs.events.on('parserMessage', (m) => this._pushParserMessage(m));
 
     // Click outside popup dismisses it
     this.input.on('pointerdown', (pointer) => {
@@ -167,6 +208,7 @@ export class UIScene extends Phaser.Scene {
   // ─── Mode UI ─────────────────────────────────────────────────────────────────
 
   _buildModeUI() {
+    if (this.registry.get('parserMode')) return;
     const mode = this.registry.get('uiMode') || 'verbBar';
     if (mode === 'verbBar') this._buildVerbBar();
   }
@@ -348,6 +390,7 @@ export class UIScene extends Phaser.Scene {
   // ─── Verb popup (Mode B) ──────────────────────────────────────────────────────
 
   _showVerbPopup(data) {
+    if (this.registry.get('parserMode')) return;
     this._hideVerbPopup();
 
     const { x, y, verbs } = data;
@@ -453,7 +496,7 @@ export class UIScene extends Phaser.Scene {
     this._hideSettings();
 
     const panelW = 180 * SCALE;
-    const panelH = 96 * SCALE;
+    const panelH = 128 * SCALE;
     const px = Math.floor((GAME_W - panelW) / 2);
     const py = Math.floor((GAME_H - panelH) / 2) - 10 * SCALE;
 
@@ -528,19 +571,28 @@ export class UIScene extends Phaser.Scene {
   }
 
   _buildTabContent(panelW) {
+    // The walk-area overlay is only useful while the Size tab is open.
+    this.registry.set('showWalkArea', this._currentTab === 'size');
+
     if (this._currentTab === 'main') {
       this._addToggleRow(this._tabContent, panelW, 'Arrow Keys', 'arrowKeys',    0);
       this._addToggleRow(this._tabContent, panelW, 'Hotspots',   'showHotspots', 18 * SCALE);
       this._addToggleRow(this._tabContent, panelW, 'Rulers',     'showRulers',   36 * SCALE);
+      this._addToggleRow(this._tabContent, panelW, 'Parser Mode','parserMode',   54 * SCALE);
     } else if (this._currentTab === 'size') {
-      const opts = { min: 0.05, max: 2.0, step: 0.05, decimals: 2 };
-      this._addNumberRow(this._tabContent, panelW, 'Farthest', 'playerScaleTop',    0,          opts);
-      this._addNumberRow(this._tabContent, panelW, 'Closeup',  'playerScaleBottom', 18 * SCALE, opts);
-      this._addButtonRow(this._tabContent, panelW, 'Save to Room', 36 * SCALE, async (btn) => {
+      const sOpts = { min: 0.05, max: 2.0, step: 0.05, decimals: 2 };
+      const yOpts = { min: 0, max: 180, step: 1, decimals: 0 };
+      this._addNumberRow(this._tabContent, panelW, 'Farthest', 'playerScaleTop',    0,          sOpts);
+      this._addNumberRow(this._tabContent, panelW, 'Closeup',  'playerScaleBottom', 18 * SCALE, sOpts);
+      this._addNumberRow(this._tabContent, panelW, 'Walk Top', 'walkAreaTop',       36 * SCALE, yOpts);
+      this._addNumberRow(this._tabContent, panelW, 'Walk Bot', 'walkAreaBottom',    54 * SCALE, yOpts);
+      this._addButtonRow(this._tabContent, panelW, 'Save to Room', 72 * SCALE, async (btn) => {
         const roomId = this.registry.get('currentRoom');
         const top = Number(this.registry.get('playerScaleTop') ?? 0);
         const bot = Number(this.registry.get('playerScaleBottom') ?? 0);
-        await this._saveRoom(roomId, { depthScale: { top, bottom: bot } }, btn, 'Save to Room');
+        const wTop = Math.round(Number(this.registry.get('walkAreaTop') ?? 0));
+        const wBot = Math.round(Number(this.registry.get('walkAreaBottom') ?? 0));
+        await this._saveRoom(roomId, { depthScale: { top, bottom: bot }, walkAreaY: [wTop, wBot] }, btn, 'Save to Room');
       });
     } else if (this._currentTab === 'tools') {
       this._addToggleRow(this._tabContent, panelW, 'Draw Blockers', 'blockerDrawMode', 0);
@@ -737,6 +789,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   _hideSettings() {
+    this.registry.set('showWalkArea', false);
     for (const r of this._numRowListeners) {
       this.registry.events.off(`changedata-${r.key}`, r.draw);
     }
@@ -746,6 +799,117 @@ export class UIScene extends Phaser.Scene {
       this._settingsPanel = null;
     }
     this._tabContent = null;
+  }
+
+  // ─── Parser mode (text command line) ─────────────────────────────────────────
+
+  _buildParser() {
+    if (this._parserBand) return;
+    const lineH = FONT_SIZE + 2 * SCALE;
+    const bandH = lineH * 3 + 6 * SCALE;
+
+    // Top message band
+    const band = this.add.graphics().setDepth(1000);
+    band.fillStyle(0x000000, 0.72);
+    band.fillRect(0, 0, GAME_W, bandH);
+    band.lineStyle(1, C.barBorder, 1);
+    band.lineBetween(0, bandH, GAME_W, bandH);
+
+    const msgTxt = this.add.bitmapText(4 * SCALE, 3 * SCALE, FONT_KEY, '', FONT_SIZE)
+      .setTint(0xffffff).setDepth(1001).setMaxWidth(GAME_W - 8 * SCALE);
+
+    // Bottom command line
+    const inputY = GAME_H - lineH - 2 * SCALE;
+    const inBg = this.add.graphics().setDepth(1000);
+    inBg.fillStyle(0x12122a, 0.92);
+    inBg.fillRect(0, inputY - 2 * SCALE, GAME_W, lineH + 4 * SCALE);
+    inBg.lineStyle(1, C.barBorder, 1);
+    inBg.lineBetween(0, inputY - 2 * SCALE, GAME_W, inputY - 2 * SCALE);
+
+    const inTxt = this.add.bitmapText(4 * SCALE, inputY, FONT_KEY, '> ', FONT_SIZE)
+      .setTint(0xffff88).setDepth(1001);
+
+    this._parserBand = { band, msgTxt };
+    this._parserInputBg = inBg;
+    this._parserInputTxt = inTxt;
+    this._parserBuffer = '';
+    if (!this._parserMsgs) this._parserMsgs = [];
+    this._renderParserMsgs();
+    this._renderParserInput();
+
+    this._parserCaretOn = true;
+    this._caretTimer = this.time.addEvent({
+      delay: 450, loop: true,
+      callback: () => { this._parserCaretOn = !this._parserCaretOn; this._renderParserInput(); },
+    });
+
+    this._parserKeyHandler = (event) => this._onParserKey(event);
+    this.input.keyboard.on('keydown', this._parserKeyHandler);
+  }
+
+  _destroyParser() {
+    this._caretTimer?.remove();
+    this._caretTimer = null;
+    if (this._parserKeyHandler) {
+      this.input.keyboard.off('keydown', this._parserKeyHandler);
+      this._parserKeyHandler = null;
+    }
+    this._parserBand?.band.destroy();
+    this._parserBand?.msgTxt.destroy();
+    this._parserBand = null;
+    this._parserInputBg?.destroy();
+    this._parserInputBg = null;
+    this._parserInputTxt?.destroy();
+    this._parserInputTxt = null;
+  }
+
+  _onParserKey(event) {
+    if (!this.registry.get('parserMode')) return;
+    if (this._settingsPanel) return;   // don't capture while Settings is open
+    const key = event.key;
+    if (key === 'Enter') {
+      const cmd = this._parserBuffer;
+      this._parserBuffer = '';
+      this._renderParserInput();
+      if (cmd.trim()) this.scene.get('GameScene').parser.submit(cmd);
+      return;
+    }
+    if (key === 'Backspace') {
+      this._parserBuffer = this._parserBuffer.slice(0, -1);
+      this._renderParserInput();
+      event.preventDefault?.();
+      return;
+    }
+    if (key === 'Escape') {
+      this._parserBuffer = '';
+      this._renderParserInput();
+      return;
+    }
+    // Printable single characters only — arrow keys (length > 1) still drive movement.
+    if (key && key.length === 1 && this._parserBuffer.length < 42) {
+      this._parserBuffer += key;
+      this._renderParserInput();
+    }
+  }
+
+  _renderParserInput() {
+    if (!this._parserInputTxt) return;
+    const caret = this._parserCaretOn ? '_' : ' ';
+    this._parserInputTxt.setText('> ' + this._parserBuffer + caret);
+  }
+
+  _pushParserMessage(m) {
+    if (!this._parserMsgs) this._parserMsgs = [];
+    const text = typeof m === 'string' ? m : (m && m.text) || '';
+    if (!text) return;
+    this._parserMsgs.push(text);
+    while (this._parserMsgs.length > 8) this._parserMsgs.shift();
+    this._renderParserMsgs();
+  }
+
+  _renderParserMsgs() {
+    if (!this._parserBand) return;
+    this._parserBand.msgTxt.setText(this._parserMsgs.slice(-3).join('\n'));
   }
 
   // ─── Rulers ─────────────────────────────────────────────────────────────────

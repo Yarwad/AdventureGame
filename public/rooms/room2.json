@@ -1,6 +1,7 @@
 {
   "id": "room2",
   "title": "Beyond",
+  "description": "A barren expanse stretches out beyond the pass. The way back west is behind you.",
   "background": "rooms/Test_2.png",
   "walkAreaY": [
     100,

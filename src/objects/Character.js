@@ -7,6 +7,7 @@ export class Character {
     this.label = data.label;
     this.verbs = data.verbs || {};
     this.type = 'character';
+    this.nouns = data.nouns || [];
 
     const spriteKey = `char_${data.id}`;
 

@@ -7,6 +7,7 @@ export class WorldItem {
     this.label = data.label;
     this.verbs = data.verbs || {};
     this.type = 'item';
+    this.nouns = data.nouns || [];
 
     const imgKey = `item_${data.id}`;
 

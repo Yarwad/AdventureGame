@@ -5,6 +5,7 @@ import { ActionRunner } from './systems/ActionRunner.js';
 import { DialogueSystem } from './systems/DialogueSystem.js';
 import { RoomSystem } from './systems/RoomSystem.js';
 import { BlockerSystem } from './systems/BlockerSystem.js';
+import { ParserSystem } from './systems/ParserSystem.js';
 import { inventory } from './systems/InventorySystem.js';
 import { createPixelFont } from './BitmapFontGen.js';
 
@@ -46,6 +47,7 @@ export class GameScene extends Phaser.Scene {
     this.dialogue = new DialogueSystem(this);
     this.roomSystem = new RoomSystem(this);
     this.blockers = new BlockerSystem(this);
+    this.parser = new ParserSystem(this);
 
     // Action runner
     this._runner = new ActionRunner({
@@ -58,6 +60,17 @@ export class GameScene extends Phaser.Scene {
 
     // Walk marker
     this._walkMarker = this.add.graphics().setDepth(950);
+
+    // Walk-area bounds overlay (shown while tuning in Settings > Size)
+    this._walkAreaGfx = this.add.graphics().setDepth(930);
+    this._walkAreaLabels = [
+      this.add.bitmapText(0, 0, 'pixel', 'FAR',  8 * SCALE).setTint(0x66ccff).setDepth(931).setVisible(false),
+      this.add.bitmapText(0, 0, 'pixel', 'NEAR', 8 * SCALE).setTint(0xffcc44).setDepth(931).setVisible(false),
+    ];
+    const renderWalkArea = () => this._renderWalkArea();
+    this.registry.events.on('changedata-showWalkArea',   renderWalkArea);
+    this.registry.events.on('changedata-walkAreaTop',    renderWalkArea);
+    this.registry.events.on('changedata-walkAreaBottom', renderWalkArea);
 
     // Input: click on background = walk (or dismiss dialogue)
     this.input.on('pointerdown', (pointer) => {
@@ -153,8 +166,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_t, dt) {
-    // Arrow key movement when enabled
-    if (this.registry.get('arrowKeys') && this.cursors) {
+    // Arrow key movement when enabled (always on in parser mode)
+    if ((this.registry.get('arrowKeys') || this.registry.get('parserMode')) && this.cursors) {
       const dir = { x: 0, y: 0 };
       if (this.cursors.left.isDown)  dir.x = -1;
       if (this.cursors.right.isDown) dir.x = 1;
@@ -186,5 +199,31 @@ export class GameScene extends Phaser.Scene {
     if (exit) {
       this._runner.run([{ type: 'goTo', room: exit.toRoom, spawnX: exit.spawnX, spawnY: exit.spawnY }]);
     }
+  }
+
+  getInteractables() {
+    return this.roomSystem.getInteractables();
+  }
+
+  _renderWalkArea() {
+    const g = this._walkAreaGfx;
+    if (!g) return;
+    g.clear();
+    this._walkAreaLabels?.forEach(l => l.setVisible(false));
+    if (!this.registry.get('showWalkArea')) return;
+
+    const top = (this.registry.get('walkAreaTop') ?? 0) * SCALE;
+    const bot = (this.registry.get('walkAreaBottom') ?? 0) * SCALE;
+
+    g.fillStyle(0x44aaff, 0.12);
+    g.fillRect(0, top, GAME_W, Math.max(0, bot - top));
+    g.lineStyle(1, 0x66ccff, 0.9);
+    g.lineBetween(0, top, GAME_W, top);
+    g.lineStyle(1, 0xffcc44, 0.9);
+    g.lineBetween(0, bot, GAME_W, bot);
+
+    const [farL, nearL] = this._walkAreaLabels || [];
+    if (farL)  farL.setVisible(true).setPosition(GAME_W - farL.width - 3 * SCALE, top + 1 * SCALE);
+    if (nearL) nearL.setVisible(true).setPosition(GAME_W - nearL.width - 3 * SCALE, bot - nearL.height - 1 * SCALE);
   }
 }

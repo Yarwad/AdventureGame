@@ -86,6 +86,8 @@ export class RoomSystem {
     // Update player walk area + depth scale (scale Y values)
     if (data.walkAreaY) {
       scene.player.walkAreaY = [data.walkAreaY[0] * SCALE, data.walkAreaY[1] * SCALE];
+      scene.registry.set('walkAreaTop', data.walkAreaY[0]);
+      scene.registry.set('walkAreaBottom', data.walkAreaY[1]);
     }
     if (data.depthScale) {
       scene.registry.set('playerScaleTop',    data.depthScale.top);
@@ -111,6 +113,10 @@ export class RoomSystem {
       this._entities[idx].destroy();
       this._entities.splice(idx, 1);
     }
+  }
+
+  getInteractables() {
+    return this._entities.filter(e => e && e.label);
   }
 
   _cleanup() {

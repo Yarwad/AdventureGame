@@ -5,6 +5,7 @@ export class Hotspot {
     this.label = data.label;
     this.verbs = data.verbs || {};
     this.type = 'hotspot';
+    this.nouns = data.nouns || [];
 
     const { x, y, w, h } = data;
 

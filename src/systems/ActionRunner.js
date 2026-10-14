@@ -40,12 +40,23 @@ export class ActionRunner {
         const speaker = action.characterId
           ? scene.characters?.get(action.characterId)?.sprite
           : null;
-        await dialogue.say(action.text, speaker);
+        if (scene.registry.get('parserMode')) {
+          // Mirror into the parser message band. NPC lines keep their bubble;
+          // narration-style lines (no speaker) just pause for reading.
+          scene.events.emit('parserMessage', { text: action.text });
+          if (speaker) await dialogue.say(action.text, speaker);
+          else await this._wait(Math.min(2400, 700 + action.text.length * 35));
+        } else {
+          await dialogue.say(action.text, speaker);
+        }
         break;
       }
 
       case 'narrate': {
         scene.registry.set('statusText', action.text);
+        if (scene.registry.get('parserMode')) {
+          scene.events.emit('parserMessage', { text: action.text });
+        }
         break;
       }
 
