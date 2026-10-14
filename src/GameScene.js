@@ -75,6 +75,7 @@ export class GameScene extends Phaser.Scene {
     // Input: click on background = walk (or dismiss dialogue)
     this.input.on('pointerdown', (pointer) => {
       if (this.registry.get('blockerDrawMode')) return;
+      if (this.registry.get('parserPaused')) return;
       this.dialogue.dismissOnClick();
 
       const uiMode = this.registry.get('uiMode') || 'verbBar';
@@ -166,8 +167,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_t, dt) {
-    // Arrow key movement when enabled (always on in parser mode)
-    if ((this.registry.get('arrowKeys') || this.registry.get('parserMode')) && this.cursors) {
+    // Arrow key movement when enabled (always on in parser mode, but not while
+    // a parser message window is up).
+    if ((this.registry.get('arrowKeys') || this.registry.get('parserMode')) && this.cursors
+        && !this.registry.get('parserPaused')) {
       const dir = { x: 0, y: 0 };
       if (this.cursors.left.isDown)  dir.x = -1;
       if (this.cursors.right.isDown) dir.x = 1;
@@ -187,6 +190,7 @@ export class GameScene extends Phaser.Scene {
 
   _checkEdgeExit() {
     if (this._runner.running) return;
+    if (this.registry.get('parserPaused')) return;
     const ee = this.roomSystem.currentRoom?.edgeExits;
     if (!ee) return;
     const px = this.player.x, py = this.player.y;

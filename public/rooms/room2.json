@@ -4,8 +4,8 @@
   "description": "A barren expanse stretches out beyond the pass. The way back west is behind you.",
   "background": "rooms/Test_2.png",
   "walkAreaY": [
-    100,
-    160
+    90,
+    179
   ],
   "depthScale": {
     "top": 0.45,
@@ -30,12 +30,6 @@
       "y": 120,
       "w": 61,
       "h": 52
-    },
-    {
-      "x": 53,
-      "y": 1,
-      "w": 220,
-      "h": 86
     }
   ]
 }

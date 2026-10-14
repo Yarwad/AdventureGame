@@ -35,7 +35,6 @@ export class ParserSystem {
   submit(raw) {
     const text = (raw || '').trim();
     if (!text) return;
-    this._emit(`> ${text}`);
 
     if (this.scene._runner?.running) {
       this._emit('Hold on a moment...');

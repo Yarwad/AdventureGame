@@ -46,14 +46,16 @@ export class UIScene extends Phaser.Scene {
     this._currentTab  = 'main';
     this._tabContent  = null;
     this._numRowListeners = [];
-    this._parserBand      = null;
     this._parserInputBg   = null;
     this._parserInputTxt  = null;
     this._parserBuffer    = '';
-    this._parserMsgs      = [];
+    this._parserMsgQueue  = [];
     this._parserKeyHandler = null;
+    this._msgClickHandler = null;
     this._caretTimer      = null;
     this._parserCaretOn   = true;
+    this._msgBox          = null;
+    this._msgBoxActive    = false;
   }
 
   create() {
@@ -98,6 +100,9 @@ export class UIScene extends Phaser.Scene {
     if (this.registry.get('parserMode') === undefined) {
       this.registry.set('parserMode', false);
     }
+    if (this.registry.get('parserPaused') === undefined) {
+      this.registry.set('parserPaused', false);
+    }
 
     const initUI = () => {
       this._createToggle();
@@ -136,7 +141,7 @@ export class UIScene extends Phaser.Scene {
 
     this.registry.events.on('changedata-currentRoom', () => {
       this._hideVerbPopup();
-      if (this.registry.get('parserMode') && this._parserBand) {
+      if (this.registry.get('parserMode') && this._parserInputTxt) {
         this.scene.get('GameScene').parser?.describeRoom();
       }
     });
@@ -146,7 +151,6 @@ export class UIScene extends Phaser.Scene {
       if (val) {
         this._clearModeUI();
         this._buildParser();
-        this.scene.get('GameScene').parser?.describeRoom();
       } else {
         this._destroyParser();
         this._buildModeUI();
@@ -466,7 +470,7 @@ export class UIScene extends Phaser.Scene {
 
   _createGearBtn() {
     const tx = GAME_W - 6 * SCALE;
-    const ty = GAME_H - UI_STRIP_H - 6 * SCALE;
+    const ty = 6 * SCALE;
 
     this._gearBtn = this.add.text(tx, ty, '*', {
       fontFamily: '"Press Start 2P", monospace',
@@ -475,7 +479,7 @@ export class UIScene extends Phaser.Scene {
       backgroundColor: '#333355',
       padding: { x: 4 * SCALE, y: 3 * SCALE },
     })
-      .setOrigin(1, 1)
+      .setOrigin(1, 0)
       .setDepth(1100)
       .setInteractive({ useHandCursor: true });
 
@@ -586,14 +590,23 @@ export class UIScene extends Phaser.Scene {
       this._addNumberRow(this._tabContent, panelW, 'Closeup',  'playerScaleBottom', 18 * SCALE, sOpts);
       this._addNumberRow(this._tabContent, panelW, 'Walk Top', 'walkAreaTop',       36 * SCALE, yOpts);
       this._addNumberRow(this._tabContent, panelW, 'Walk Bot', 'walkAreaBottom',    54 * SCALE, yOpts);
-      this._addButtonRow(this._tabContent, panelW, 'Save to Room', 72 * SCALE, async (btn) => {
+      const saveBtn = this._addButtonRow(this._tabContent, panelW, 'Save to Room', 72 * SCALE, async (btn) => {
         const roomId = this.registry.get('currentRoom');
         const top = Number(this.registry.get('playerScaleTop') ?? 0);
         const bot = Number(this.registry.get('playerScaleBottom') ?? 0);
         const wTop = Math.round(Number(this.registry.get('walkAreaTop') ?? 0));
         const wBot = Math.round(Number(this.registry.get('walkAreaBottom') ?? 0));
         await this._saveRoom(roomId, { depthScale: { top, bottom: bot }, walkAreaY: [wTop, wBot] }, btn, 'Save to Room');
+        btn.setHighlight(this._sizeIsDirty());
       });
+
+      // Highlight Save while the current values differ from the room's saved file.
+      const refreshDirty = () => saveBtn.setHighlight(this._sizeIsDirty());
+      refreshDirty();
+      for (const key of ['playerScaleTop', 'playerScaleBottom', 'walkAreaTop', 'walkAreaBottom']) {
+        this.registry.events.on(`changedata-${key}`, refreshDirty);
+        this._numRowListeners.push({ key, draw: refreshDirty });
+      }
     } else if (this._currentTab === 'tools') {
       this._addToggleRow(this._tabContent, panelW, 'Draw Blockers', 'blockerDrawMode', 0);
       this._addButtonRow(this._tabContent, panelW, 'Clear All', 18 * SCALE, () => {
@@ -627,6 +640,9 @@ export class UIScene extends Phaser.Scene {
         body: JSON.stringify({ roomId, patch }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // Keep the in-memory room in sync with disk so "unsaved" checks stay accurate.
+      const room = this.scene.get('GameScene').roomSystem?.currentRoom;
+      if (room && room.id === roomId) Object.assign(room, patch);
       finish('Saved!');
       return true;
     } catch (e) {
@@ -755,6 +771,9 @@ export class UIScene extends Phaser.Scene {
     const btnH = 12 * SCALE;
     const btnX = (panelW - btnW) / 2;
 
+    let baseColor  = C.btnNormal;
+    let hoverColor = C.btnHover;
+
     const bg = this.add.graphics();
     const drawBg = (color) => {
       bg.clear();
@@ -763,7 +782,7 @@ export class UIScene extends Phaser.Scene {
       bg.lineStyle(1, 0x6a6aee, 1);
       bg.strokeRoundedRect(btnX, rowY, btnW, btnH, 2 * SCALE);
     };
-    drawBg(C.btnNormal);
+    drawBg(baseColor);
     container.add(bg);
 
     const txt = this.add.bitmapText(0, rowY + (btnH - FONT_SIZE) / 2, FONT_KEY, label, FONT_SIZE)
@@ -777,15 +796,36 @@ export class UIScene extends Phaser.Scene {
         txt.setText(text);
         txt.setX(btnX + (btnW - txt.width) / 2);
       },
+      // Amber = unsaved changes.
+      setHighlight(on) {
+        baseColor  = on ? 0xcc7a2e : C.btnNormal;
+        hoverColor = on ? 0xe08a3a : C.btnHover;
+        drawBg(baseColor);
+      },
     };
 
     const zone = this.add.zone(btnX, rowY, btnW, btnH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
     container.add(zone);
     zone.on('pointerdown', () => onClick(btn));
-    zone.on('pointerover', () => drawBg(C.btnHover));
-    zone.on('pointerout',  () => drawBg(C.btnNormal));
+    zone.on('pointerover', () => drawBg(hoverColor));
+    zone.on('pointerout',  () => drawBg(baseColor));
 
     return btn;
+  }
+
+  // True when the live Size-tab values differ from what's saved in the room file.
+  _sizeIsDirty() {
+    const room = this.scene.get('GameScene').roomSystem?.currentRoom;
+    if (!room) return false;
+    const ds = room.depthScale || {};
+    const wa = room.walkAreaY || [];
+    const near = (a, b) => (a == null || b == null) ? (a == b) : Math.abs(Number(a) - Number(b)) < 1e-6;
+    return !(
+      near(this.registry.get('playerScaleTop'),    ds.top) &&
+      near(this.registry.get('playerScaleBottom'), ds.bottom) &&
+      near(this.registry.get('walkAreaTop'),       wa[0]) &&
+      near(this.registry.get('walkAreaBottom'),    wa[1])
+    );
   }
 
   _hideSettings() {
@@ -801,27 +841,16 @@ export class UIScene extends Phaser.Scene {
     this._tabContent = null;
   }
 
-  // ─── Parser mode (text command line) ─────────────────────────────────────────
+  // ─── Parser mode (command line + Sierra-style message window) ─────────────────
 
   _buildParser() {
-    if (this._parserBand) return;
+    if (this._parserInputTxt) return;
     const lineH = FONT_SIZE + 2 * SCALE;
-    const bandH = lineH * 3 + 6 * SCALE;
 
-    // Top message band
-    const band = this.add.graphics().setDepth(1000);
-    band.fillStyle(0x000000, 0.72);
-    band.fillRect(0, 0, GAME_W, bandH);
-    band.lineStyle(1, C.barBorder, 1);
-    band.lineBetween(0, bandH, GAME_W, bandH);
-
-    const msgTxt = this.add.bitmapText(4 * SCALE, 3 * SCALE, FONT_KEY, '', FONT_SIZE)
-      .setTint(0xffffff).setDepth(1001).setMaxWidth(GAME_W - 8 * SCALE);
-
-    // Bottom command line
+    // Bottom command line — the only persistent prompt on screen.
     const inputY = GAME_H - lineH - 2 * SCALE;
     const inBg = this.add.graphics().setDepth(1000);
-    inBg.fillStyle(0x12122a, 0.92);
+    inBg.fillStyle(0x000000, 0.85);
     inBg.fillRect(0, inputY - 2 * SCALE, GAME_W, lineH + 4 * SCALE);
     inBg.lineStyle(1, C.barBorder, 1);
     inBg.lineBetween(0, inputY - 2 * SCALE, GAME_W, inputY - 2 * SCALE);
@@ -829,12 +858,10 @@ export class UIScene extends Phaser.Scene {
     const inTxt = this.add.bitmapText(4 * SCALE, inputY, FONT_KEY, '> ', FONT_SIZE)
       .setTint(0xffff88).setDepth(1001);
 
-    this._parserBand = { band, msgTxt };
     this._parserInputBg = inBg;
     this._parserInputTxt = inTxt;
     this._parserBuffer = '';
-    if (!this._parserMsgs) this._parserMsgs = [];
-    this._renderParserMsgs();
+    this._parserMsgQueue = [];
     this._renderParserInput();
 
     this._parserCaretOn = true;
@@ -845,6 +872,9 @@ export class UIScene extends Phaser.Scene {
 
     this._parserKeyHandler = (event) => this._onParserKey(event);
     this.input.keyboard.on('keydown', this._parserKeyHandler);
+
+    this._msgClickHandler = () => { if (this._msgBoxActive) this._dismissMsgBox(); };
+    this.input.on('pointerdown', this._msgClickHandler);
   }
 
   _destroyParser() {
@@ -854,9 +884,13 @@ export class UIScene extends Phaser.Scene {
       this.input.keyboard.off('keydown', this._parserKeyHandler);
       this._parserKeyHandler = null;
     }
-    this._parserBand?.band.destroy();
-    this._parserBand?.msgTxt.destroy();
-    this._parserBand = null;
+    if (this._msgClickHandler) {
+      this.input.off('pointerdown', this._msgClickHandler);
+      this._msgClickHandler = null;
+    }
+    this._clearMsgBox();
+    this._parserMsgQueue = [];
+    this.registry.set('parserPaused', false);
     this._parserInputBg?.destroy();
     this._parserInputBg = null;
     this._parserInputTxt?.destroy();
@@ -866,6 +900,14 @@ export class UIScene extends Phaser.Scene {
   _onParserKey(event) {
     if (!this.registry.get('parserMode')) return;
     if (this._settingsPanel) return;   // don't capture while Settings is open
+
+    // While a message window is up, any key dismisses it (Sierra "press a key").
+    if (this._msgBoxActive) {
+      event.preventDefault?.();
+      this._dismissMsgBox();
+      return;
+    }
+
     const key = event.key;
     if (key === 'Enter') {
       const cmd = this._parserBuffer;
@@ -898,18 +940,63 @@ export class UIScene extends Phaser.Scene {
     this._parserInputTxt.setText('> ' + this._parserBuffer + caret);
   }
 
+  // Each response pops up in a centered, bordered window and pauses play until
+  // the player presses a key or clicks — the Sierra AGI/SCI convention.
   _pushParserMessage(m) {
-    if (!this._parserMsgs) this._parserMsgs = [];
     const text = typeof m === 'string' ? m : (m && m.text) || '';
     if (!text) return;
-    this._parserMsgs.push(text);
-    while (this._parserMsgs.length > 8) this._parserMsgs.shift();
-    this._renderParserMsgs();
+    if (!this._parserMsgQueue) this._parserMsgQueue = [];
+    this._parserMsgQueue.push(text);
+    if (!this._msgBoxActive) this._showNextMsg();
   }
 
-  _renderParserMsgs() {
-    if (!this._parserBand) return;
-    this._parserBand.msgTxt.setText(this._parserMsgs.slice(-3).join('\n'));
+  _showNextMsg() {
+    if (!this._parserMsgQueue || !this._parserMsgQueue.length) {
+      this.registry.set('parserPaused', false);
+      return;
+    }
+    this._showMsgBox(this._parserMsgQueue.shift());
+  }
+
+  _showMsgBox(text) {
+    this._clearMsgBox();
+
+    const pad = 6 * SCALE;
+    const maxTextW = 220 * SCALE;
+
+    const txt = this.add.bitmapText(0, 0, FONT_KEY, text, FONT_SIZE)
+      .setTint(0x101018).setDepth(1251).setMaxWidth(maxTextW);
+
+    const boxW = Math.min(maxTextW, txt.width) + pad * 2;
+    const boxH = txt.height + pad * 2;
+    const bx = Math.floor((GAME_W - boxW) / 2);
+    const by = Math.floor((GAME_H - boxH) / 2);
+
+    const g = this.add.graphics().setDepth(1250);
+    g.fillStyle(0xe8e8f0, 1);
+    g.fillRect(bx, by, boxW, boxH);
+    g.lineStyle(SCALE, 0x12122a, 1);
+    g.strokeRect(bx, by, boxW, boxH);
+    g.lineStyle(SCALE, 0x8a8ad0, 1);
+    g.strokeRect(bx + 2 * SCALE, by + 2 * SCALE, boxW - 4 * SCALE, boxH - 4 * SCALE);
+
+    txt.setPosition(bx + pad, by + pad);
+
+    this._msgBox = { g, txt };
+    this._msgBoxActive = true;
+    this.registry.set('parserPaused', true);
+  }
+
+  _dismissMsgBox() {
+    this._clearMsgBox();
+    this._showNextMsg();
+  }
+
+  _clearMsgBox() {
+    this._msgBox?.g.destroy();
+    this._msgBox?.txt.destroy();
+    this._msgBox = null;
+    this._msgBoxActive = false;
   }
 
   // ─── Rulers ─────────────────────────────────────────────────────────────────
