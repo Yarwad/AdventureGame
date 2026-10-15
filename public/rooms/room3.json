@@ -1,0 +1,142 @@
+{
+  "id": "room3",
+  "title": "The High Pass",
+  "description": "A windswept pass high in the rust-red mountains. A sealed metal hatch is set into the rock, and a cave mouth opens to the east.",
+  "background": "rooms/mars_pass.png",
+  "walkAreaY": [108, 160],
+  "depthScale": { "top": 0.45, "bottom": 0.55 },
+  "edgeExits": {
+    "bottom": { "toRoom": "room1", "spawnX": 160, "spawnY": 62 },
+    "right":  { "toRoom": "room2", "spawnX": 30, "spawnY": 140 }
+  },
+  "characters": [
+    {
+      "id": "settler",
+      "label": "Settler",
+      "nouns": ["settler", "colonist", "astronaut", "person", "suit"],
+      "x": 90, "y": 150,
+      "sprite": "characters/settler.png",
+      "frameW": 34, "frameH": 86,
+      "wander": { "radius": 55, "pauseMs": [1500, 4000] },
+      "verbs": {
+        "lookAt": [
+          { "type": "say", "text": "A settler in a dusty grey enviro-suit. The visor hides their face." }
+        ],
+        "talkTo": [
+          { "type": "say", "characterId": "settler", "text": "Watch the pass at dusk. The dust gets into everything." },
+          { "type": "say", "text": "I'll keep that in mind." }
+        ]
+      }
+    }
+  ],
+  "exits": [
+    {
+      "id": "cave_mouth",
+      "x": 280, "y": 106, "w": 40, "h": 60,
+      "toRoom": "room2",
+      "spawnX": 55, "spawnY": 145,
+      "label": "Cave Mouth",
+      "nouns": ["cave", "mouth", "opening", "entrance", "tunnel"]
+    }
+  ],
+  "hotspots": [
+    {
+      "id": "sky3",
+      "label": "Martian Sky",
+      "nouns": ["sky", "clouds", "dust", "glow"],
+      "x": 0, "y": 0, "w": 320, "h": 64,
+      "verbs": {
+        "lookAt": [
+          { "type": "say", "text": "The sky is a dull pinkish-grey. A faint glow hangs over the peaks." }
+        ]
+      }
+    },
+    {
+      "id": "moons",
+      "label": "Twin Moons",
+      "nouns": ["moons", "moon", "phobos", "deimos"],
+      "x": 58, "y": 10, "w": 62, "h": 36,
+      "verbs": {
+        "lookAt": [
+          { "type": "say", "text": "Phobos and Deimos. Two lumpy grey moons, hurrying across the sky." }
+        ]
+      }
+    },
+    {
+      "id": "peaks",
+      "label": "Mountains",
+      "nouns": ["mountains", "mountain", "peaks", "peak", "ridge"],
+      "x": 0, "y": 64, "w": 320, "h": 42,
+      "verbs": {
+        "lookAt": [
+          { "type": "say", "text": "Jagged rust-red peaks on every side. The pass cuts between them." }
+        ]
+      }
+    },
+    {
+      "id": "rocks3",
+      "label": "Rocks",
+      "nouns": ["rocks", "rock", "boulder", "boulders", "stones", "stone"],
+      "x": 44, "y": 132, "w": 34, "h": 20,
+      "verbs": {
+        "lookAt": [
+          { "type": "say", "text": "Wind-worn rocks. Dull grey, like everything here that isn't red." }
+        ],
+        "pickUp": [
+          { "type": "say", "text": "I have enough rocks in my life." }
+        ]
+      }
+    },
+    {
+      "id": "crater",
+      "label": "Small Crater",
+      "nouns": ["crater", "hole", "pit", "impact"],
+      "x": 156, "y": 130, "w": 34, "h": 18,
+      "verbs": {
+        "lookAt": [
+          { "type": "say", "text": "A small impact crater. Something hit here hard, a very long time ago." }
+        ]
+      }
+    },
+    {
+      "id": "path3",
+      "label": "Sandy Path",
+      "nouns": ["path", "trail", "sand", "track"],
+      "x": 120, "y": 152, "w": 168, "h": 26,
+      "verbs": {
+        "lookAt": [
+          { "type": "say", "text": "A sandy trail, swept thin by the wind. It runs east into the cave." }
+        ]
+      }
+    },
+    {
+      "id": "hatch3",
+      "label": "Metal Hatch",
+      "nouns": ["hatch", "door", "lock", "metal"],
+      "x": 222, "y": 120, "w": 50, "h": 34,
+      "verbs": {
+        "lookAt": [
+          { "type": "say", "text": "A heavy metal hatch set into the rock, sealed with a brass lock." }
+        ],
+        "use": [
+          {
+            "type": "condition",
+            "hasItem": "brass_key",
+            "then": [
+              { "type": "say", "text": "The key fits! The hatch grinds open." },
+              { "type": "setFlag", "key": "hatchOpen", "value": true },
+              { "type": "wait", "ms": 800 },
+              { "type": "goTo", "room": "room2", "spawnX": 55, "spawnY": 145 }
+            ],
+            "else": [
+              { "type": "say", "text": "It's locked tight. I need a key." }
+            ]
+          }
+        ],
+        "pickUp": [
+          { "type": "say", "text": "It's set into solid rock. It isn't going anywhere." }
+        ]
+      }
+    }
+  ]
+}

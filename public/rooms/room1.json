@@ -6,7 +6,8 @@
   "walkAreaY": [50, 160],
   "depthScale": { "top": 0.45, "bottom": 0.55 },
   "edgeExits": {
-    "right": { "toRoom": "room2", "spawnX": 30, "spawnY": 140 }
+    "right": { "toRoom": "room2", "spawnX": 30, "spawnY": 140 },
+    "top":   { "toRoom": "room3", "spawnX": 160, "spawnY": 148 }
   },
   "exits": [
     {

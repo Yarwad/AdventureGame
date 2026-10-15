@@ -48,6 +48,14 @@ Game content lives in JSON files under `public/rooms/`. To add content:
 - **Background**: drop PNG in `public/rooms/`, reference in JSON `background`
 - **Item**: drop PNG in `public/items/`, add to room JSON `items` array
 - **NPC**: drop spritesheet in `public/characters/`, add to room JSON `characters` array
+  (with `frameW`/`frameH` for a 6x4 walk sheet; optional `wander` for ambling)
+
+### Generated Pixel Art
+
+Backgrounds and character sheets are generated in AGI/Sierra style under the
+in-game painter's constraints (EGA palette, chunky 2x pixels). When asked for a
+new room background or NPC, follow the spec in `docs/PAINTGEN.md` and use the
+toolkit in `tools/paintgen/` (`node tools/paintgen/rooms/<scene>.js`).
 
 ### Action System
 

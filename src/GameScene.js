@@ -185,6 +185,12 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.player.update(dt);
+
+    // NPCs wander, but hold still during cutscenes and parser message windows.
+    if (!this._runner.running && !this.registry.get('parserPaused')) {
+      this.characters.forEach(c => c.update && c.update(dt));
+    }
+
     this._checkEdgeExit();
   }
 
@@ -195,11 +201,17 @@ export class GameScene extends Phaser.Scene {
     if (!ee) return;
     const px = this.player.x, py = this.player.y;
     const margin = 12 * SCALE;
+    // Vertical exits trigger at the walk-area bounds: the walk area rarely
+    // reaches the screen's top/bottom edge, and arrow movement clamps Y to it,
+    // so a screen-edge margin alone would be unreachable.
+    const [walkTop, walkBottom] = this.player.walkAreaY;
+    const topY    = Math.max(margin, walkTop + 2 * SCALE);
+    const bottomY = Math.min(GAME_H - margin, walkBottom - 2 * SCALE);
     let exit = null;
     if      (ee.right  && px >= GAME_W - margin) exit = ee.right;
     else if (ee.left   && px <= margin)          exit = ee.left;
-    else if (ee.top    && py <= margin)          exit = ee.top;
-    else if (ee.bottom && py >= GAME_H - margin) exit = ee.bottom;
+    else if (ee.top    && py <= topY)            exit = ee.top;
+    else if (ee.bottom && py >= bottomY)         exit = ee.bottom;
     if (exit) {
       this._runner.run([{ type: 'goTo', room: exit.toRoom, spawnX: exit.spawnX, spawnY: exit.spawnY }]);
     }

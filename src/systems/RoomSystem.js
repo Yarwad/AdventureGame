@@ -14,15 +14,18 @@ export class RoomSystem {
   async loadRoom(roomId, spawnX, spawnY) {
     this._cleanup();
 
-    const res = await fetch(`rooms/${roomId}.json`);
+    // no-store: room JSON is authored live (Settings saves patch it on disk);
+    // a cached copy means stale backgrounds/exits after edits.
+    const res = await fetch(`rooms/${roomId}.json`, { cache: 'no-store' });
     const data = await res.json();
     this.currentRoom = data;
 
     const scene = this.scene;
 
-    // Background image
+    // Background image — keyed by image path, not room id, so a room whose
+    // background file changes doesn't keep serving the old texture.
     if (data.background) {
-      const bgKey = `bg_${roomId}`;
+      const bgKey = `bg_${data.background}`;
       if (!scene.textures.exists(bgKey)) {
         await this._loadTexture(bgKey, data.background);
       }
@@ -53,12 +56,16 @@ export class RoomSystem {
       this._entities.push(new WorldItem(scene, scaled));
     }
 
-    // Characters — scale coordinates
+    // Characters — scale coordinates. A character with frameW/frameH loads as
+    // a spritesheet (6x4 walk sheet, rows right/left/down/up like the player).
     scene.characters.clear();
     for (const cData of (data.characters || [])) {
       const spriteKey = `char_${cData.id}`;
       if (cData.sprite && !scene.textures.exists(spriteKey)) {
-        await this._loadTexture(spriteKey, cData.sprite).catch(() => {});
+        const load = (cData.frameW && cData.frameH)
+          ? this._loadSpritesheet(spriteKey, cData.sprite, cData.frameW, cData.frameH)
+          : this._loadTexture(spriteKey, cData.sprite);
+        await load.catch(() => {});
       }
       const scaled = { ...cData, x: cData.x * SCALE, y: cData.y * SCALE };
       const char = new Character(scene, scaled);
@@ -132,6 +139,15 @@ export class RoomSystem {
   _loadTexture(key, url) {
     return new Promise((resolve, reject) => {
       this.scene.load.image(key, url);
+      this.scene.load.once('complete', resolve);
+      this.scene.load.once('loaderror', reject);
+      this.scene.load.start();
+    });
+  }
+
+  _loadSpritesheet(key, url, frameWidth, frameHeight) {
+    return new Promise((resolve, reject) => {
+      this.scene.load.spritesheet(key, url, { frameWidth, frameHeight });
       this.scene.load.once('complete', resolve);
       this.scene.load.once('loaderror', reject);
       this.scene.load.start();
